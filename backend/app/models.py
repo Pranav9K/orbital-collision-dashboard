@@ -1,6 +1,7 @@
 """SQLAlchemy database models."""
 
 from datetime import datetime, timezone
+# pyrefly: ignore [missing-import]
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
