@@ -131,12 +131,16 @@ def risk_timeline():
     else:
         end = start + __import__("datetime").timedelta(hours=24)
 
+    # Strip tzinfo for SQLite compatibility (stores naive datetimes)
+    start_naive = start.replace(tzinfo=None)
+    end_naive = end.replace(tzinfo=None)
+
     # Get active events in the time range
     events = (
         ConjunctionEvent.query.filter(
             ConjunctionEvent.status == "active",
-            ConjunctionEvent.tca >= start,
-            ConjunctionEvent.tca <= end,
+            ConjunctionEvent.tca >= start_naive,
+            ConjunctionEvent.tca <= end_naive,
         )
         .order_by(ConjunctionEvent.tca)
         .all()
@@ -152,7 +156,7 @@ def risk_timeline():
 
         bin_events = [
             e for e in events
-            if e.tca and bin_start <= e.tca < bin_end
+            if e.tca and bin_start.replace(tzinfo=None) <= e.tca.replace(tzinfo=None) < bin_end.replace(tzinfo=None)
         ]
 
         max_risk = max((e.risk_score for e in bin_events), default=0)
