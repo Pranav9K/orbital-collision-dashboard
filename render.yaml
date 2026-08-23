@@ -21,7 +21,7 @@ services:
     staticPublishPath: "frontend/dist"
     envVars:
       - key: NODE_VERSION
-        value: 18.0.0
+        value: 20.11.0
       - key: VITE_API_URL
         fromService:
           type: web
