@@ -16,20 +16,28 @@ export default function GlobeView() {
   const selectedSatelliteId = useAppStore((s) => s.selectedSatelliteId);
   const selectSatellite = useAppStore((s) => s.selectSatellite);
   const activeFilters = useAppStore((s) => s.activeFilters);
+  const isPlaying = useAppStore((s) => s.isPlaying);
 
   // Filter positions based on active filters
   const filteredPositions = useMemo(() => {
     return positions.filter((p) => {
       const type = p.object_type?.toUpperCase();
-      if (type === 'PAYLOAD' && !activeFilters.payload) return false;
-      if (type === 'DEBRIS' && !activeFilters.debris) return false;
-      if (type === 'ROCKET BODY' && !activeFilters.rocketBody) return false;
+      if (!activeFilters.payload && (type === 'PAYLOAD' || type === 'UNKNOWN' || type === 'TBA' || !type)) return false;
+      if (!activeFilters.debris && type === 'DEBRIS') return false;
+      if (!activeFilters.rocketBody && type === 'ROCKET BODY') return false;
       return true;
     });
   }, [positions, activeFilters]);
 
   // Compute data for globe points
   const globePoints = useMemo(() => {
+    // Collect NORAD IDs of objects involved in conjunctions
+    const conjunctionNoradIds = new Set();
+    conjunctions.forEach(c => {
+      conjunctionNoradIds.add(c.object1_norad_id);
+      conjunctionNoradIds.add(c.object2_norad_id);
+    });
+
     // Create a lookup map for positions by norad_id
     const posMap = {};
     for (const p of positions) {
@@ -38,7 +46,9 @@ export default function GlobeView() {
       }
     }
 
-    return filteredPositions.map((sat) => {
+    return filteredPositions
+      .filter((sat) => conjunctionNoradIds.has(sat.norad_id) || sat.norad_id === selectedSatelliteId)
+      .map((sat) => {
       const pos = posMap[sat.norad_id];
       if (!pos) return null;
       return {
@@ -90,6 +100,16 @@ export default function GlobeView() {
       }
     }
   }, []);
+
+  // Sync auto-rotation with play/pause state
+  useEffect(() => {
+    if (globeRef.current) {
+      const controls = globeRef.current.controls();
+      if (controls) {
+        controls.autoRotate = isPlaying;
+      }
+    }
+  }, [isPlaying]);
 
   // Measure container
   useEffect(() => {
@@ -143,7 +163,7 @@ export default function GlobeView() {
         pointAltitude="alt"
         pointColor="color"
         pointRadius="size"
-        pointsMerge={false}
+        pointsMerge={true}
         onPointClick={handlePointClick}
         pointLabel={(pt) => {
           return `<div style="

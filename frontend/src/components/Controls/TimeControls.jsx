@@ -30,18 +30,20 @@ export default function TimeControls() {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [isPlaying, playbackSpeed, simulationTime, setSimulationTime]);
 
-  // Refresh positions every 30 seconds
+  // Periodically refresh positions based on playing state
   useEffect(() => {
     const timer = setInterval(() => {
-      if (!isPlaying) refreshPositions();
-    }, 30000);
+      const currentSimTime = useAppStore.getState().simulationTime;
+      refreshPositions(currentSimTime.toISOString());
+    }, isPlaying ? 2000 : 30000);
     return () => clearInterval(timer);
   }, [isPlaying, refreshPositions]);
 
   const handleReset = useCallback(() => {
     setPlaying(false);
-    setSimulationTime(new Date());
-    refreshPositions();
+    const now = new Date();
+    setSimulationTime(now);
+    refreshPositions(now.toISOString());
   }, [setPlaying, setSimulationTime, refreshPositions]);
 
   const cycleSpeed = useCallback(() => {
@@ -73,6 +75,8 @@ export default function TimeControls() {
       <input type="range" className="time-slider" min={rangeMin} max={rangeMax}
         value={simulationTime.getTime()}
         onChange={(e) => setSimulationTime(new Date(Number(e.target.value)))}
+        onMouseUp={(e) => refreshPositions(new Date(Number(e.target.value)).toISOString())}
+        onTouchEnd={(e) => refreshPositions(new Date(Number(e.target.value)).toISOString())}
         id="time-slider" />
       <div className="time-display">
         <Clock size={12} style={{ marginRight: 4 }} />

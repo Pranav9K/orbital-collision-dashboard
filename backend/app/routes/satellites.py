@@ -17,7 +17,7 @@ def list_satellites():
     search = request.args.get("search", "").strip()
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 100, type=int)
-    per_page = min(per_page, 500)  # Cap at 500
+    per_page = min(per_page, 20000)  # Cap at 20000
 
     query = Satellite.query
 

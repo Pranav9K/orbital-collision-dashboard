@@ -12,9 +12,7 @@ export default function StatsBar() {
 
   const totalObjects = stats?.total ?? 0;
   const activeConjunctions = conjunctions.length;
-  const highestRisk = conjunctions.length > 0
-    ? Math.max(...conjunctions.map((c) => c.risk_score))
-    : 0;
+  const highRiskCount = conjunctions.filter(c => c.risk_score >= 60).length;
   const nextTCA = conjunctions.length > 0
     ? conjunctions
         .filter((c) => new Date(c.tca) > new Date())
@@ -48,8 +46,8 @@ export default function StatsBar() {
       </div>
 
       <div className="stat-card stat-card--red" id="stat-highest-risk">
-        <div className="stat-card__value">{highestRisk}</div>
-        <div className="stat-card__label">Highest Risk</div>
+        <div className="stat-card__value">{highRiskCount}</div>
+        <div className="stat-card__label">High Risk</div>
       </div>
 
       <div className="stat-card stat-card--blue" id="stat-next-tca">

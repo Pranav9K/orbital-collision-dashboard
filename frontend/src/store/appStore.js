@@ -33,7 +33,7 @@ export const useAppStore = create((set, get) => ({
     try {
       const [satResult, posResult, conjResult, alertResult, timelineResult, statsResult] =
         await Promise.allSettled([
-          api.fetchSatellites({ per_page: 500 }),
+          api.fetchSatellites({ per_page: 20000 }),
           api.fetchPositions(),
           api.fetchConjunctions(),
           api.fetchAlerts(),

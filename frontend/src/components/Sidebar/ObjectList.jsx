@@ -4,6 +4,7 @@
 import { Search, Satellite, Trash2, Rocket } from 'lucide-react';
 import { useMemo } from 'react';
 import { useAppStore } from '../../store/appStore';
+import { getObjectTypeColor } from '../../types';
 
 export default function ObjectList() {
   const satellites = useAppStore((s) => s.satellites);
@@ -17,9 +18,9 @@ export default function ObjectList() {
   const filtered = useMemo(() => {
     let result = satellites.filter((s) => {
       const type = s.object_type?.toUpperCase();
-      if (type === 'PAYLOAD' && !activeFilters.payload) return false;
-      if (type === 'DEBRIS' && !activeFilters.debris) return false;
-      if (type === 'ROCKET BODY' && !activeFilters.rocketBody) return false;
+      if (!activeFilters.payload && (type === 'PAYLOAD' || type === 'UNKNOWN' || type === 'TBA' || !type)) return false;
+      if (!activeFilters.debris && type === 'DEBRIS') return false;
+      if (!activeFilters.rocketBody && type === 'ROCKET BODY') return false;
       return true;
     });
 
@@ -51,11 +52,11 @@ export default function ObjectList() {
         <span className="section-header__badge">{filtered.length}</span>
       </div>
       <div style={{ padding: 'var(--space-sm)', paddingTop: 0 }}>
-        <div className="search-box">
-          <Search size={13} className="search-box__icon" />
+        <div className="search-wrapper">
+          <Search size={14} />
           <input
             type="text"
-            className="search-box__input"
+            className="search-input"
             placeholder="Search by name or NORAD ID..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -68,7 +69,7 @@ export default function ObjectList() {
           <div key={sat.norad_id} className={`object-item ${selectedSatelliteId === sat.norad_id ? 'object-item--selected' : ''}`}
             onClick={() => selectSatellite(sat.norad_id)}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-xs)' }}>
-              <span style={{ color: sat.object_type === 'PAYLOAD' ? 'var(--accent-primary)' : sat.object_type === 'DEBRIS' ? 'var(--risk-high)' : 'var(--accent-gold)' }}>{getIcon(sat.object_type)}</span>
+              <span style={{ color: getObjectTypeColor(sat.object_type) }}>{getIcon(sat.object_type)}</span>
               <span className="object-item__name">{sat.name}</span>
             </div>
             <span className="object-item__id">{sat.norad_id}</span>

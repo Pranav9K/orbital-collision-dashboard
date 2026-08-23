@@ -141,7 +141,7 @@ def _parse_omm_record(record: dict, group_name: str) -> dict | None:
             "norad_id": norad_id,
             "name": record.get("OBJECT_NAME", f"UNKNOWN-{norad_id}").strip(),
             "intl_designator": record.get("OBJECT_ID", "").strip() or None,
-            "object_type": record.get("OBJECT_TYPE", "UNKNOWN").strip() or "UNKNOWN",
+            "object_type": _infer_object_type(record),
             "group_name": group_name,
             "tle_line1": tle_line1,
             "tle_line2": tle_line2,
@@ -161,6 +161,23 @@ def _parse_omm_record(record: dict, group_name: str) -> dict | None:
         logger.warning(f"  → Failed to parse OMM record: {e}")
         return None
 
+
+def _infer_object_type(record: dict) -> str:
+    """Infer object type from CelesTrak GP data, falling back to name heuristics."""
+    obj_type = record.get("OBJECT_TYPE", "").strip().upper()
+    if obj_type and obj_type != "UNKNOWN":
+        if obj_type == "PAY": return "PAYLOAD"
+        if obj_type == "DEB": return "DEBRIS"
+        if obj_type == "R/B": return "ROCKET BODY"
+        return obj_type
+
+    name = record.get("OBJECT_NAME", "").strip().upper()
+    if " DEB" in name or " DEBRIS" in name:
+        return "DEBRIS"
+    if " R/B" in name or " ROCKET" in name or name.endswith(" AKM") or name.endswith(" PKM"):
+        return "ROCKET BODY"
+    
+    return "PAYLOAD"
 
 def _omm_to_tle(record: dict) -> tuple[str, str]:
     """
