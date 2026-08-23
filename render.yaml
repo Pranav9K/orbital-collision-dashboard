@@ -14,11 +14,11 @@ services:
 
   - type: web
     name: orbital-frontend
-    env: node
+    env: static
     region: oregon
     plan: free
     buildCommand: "cd frontend && npm install && npm run build"
-    startCommand: "npx serve -s frontend/dist"
+    staticPublishPath: "frontend/dist"
     envVars:
       - key: NODE_VERSION
         value: 18.0.0
