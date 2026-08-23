@@ -58,7 +58,7 @@ export default function TimeControls() {
   const rangeMax = nowMs + 12 * 60 * 60 * 1000;
 
   return (
-    <div className="time-controls" id="time-controls">
+    <div className="time-controls app-footer" id="time-controls">
       <div className="time-controls__buttons">
         <button className="time-btn" onClick={() => setPlaying(!isPlaying)}
           title={isPlaying ? 'Pause' : 'Play'} id="play-pause-btn">
