@@ -177,11 +177,16 @@ html, body, #root {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+  pointer-events: none;
+}
+
+.app-sidebar > * {
+  pointer-events: auto;
 }
 
 .app-globe {
-  grid-area: globe;
-  position: relative;
+  position: absolute;
+  inset: 0;
   z-index: var(--z-globe);
   overflow: hidden;
 }
@@ -194,6 +199,11 @@ html, body, #root {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+  pointer-events: none;
+}
+
+.app-right > * {
+  pointer-events: auto;
 }
 
 .app-footer {

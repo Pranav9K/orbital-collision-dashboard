@@ -3,7 +3,10 @@
  * All endpoints are proxied through Vite's dev server config.
  */
 
-const BASE_URL = import.meta.env.VITE_API_URL || '/api';
+let BASE_URL = import.meta.env.VITE_API_URL || '/api';
+if (BASE_URL !== '/api' && !BASE_URL.endsWith('/api')) {
+  BASE_URL = `${BASE_URL.replace(/\/$/, '')}/api`;
+}
 
 async function fetchJson(url, options) {
   const response = await fetch(url, {

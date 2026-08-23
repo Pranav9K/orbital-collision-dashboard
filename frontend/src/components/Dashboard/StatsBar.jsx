@@ -9,10 +9,11 @@ import { formatCountdown } from '../../types';
 export default function StatsBar() {
   const stats = useAppStore((s) => s.stats);
   const conjunctions = useAppStore((s) => s.conjunctions);
+  const alerts = useAppStore((s) => s.alerts);
 
   const totalObjects = stats?.total ?? 0;
   const activeConjunctions = conjunctions.length;
-  const highRiskCount = conjunctions.filter(c => c.risk_score >= 60).length;
+  const highRiskCount = alerts.length;
   const nextTCA = conjunctions.length > 0
     ? conjunctions
         .filter((c) => new Date(c.tca) > new Date())
