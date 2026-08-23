@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: orbital-backend
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: "cd backend && pip install -r requirements.txt"
+    startCommand: "cd backend && gunicorn 'app:create_app()'"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.0
+      - key: CORS_ORIGINS
+        value: "*" # Allows requests from your frontend
+
+  - type: web
+    name: orbital-frontend
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: "cd frontend && npm install && npm run build"
+    startCommand: "npx serve -s frontend/dist"
+    envVars:
+      - key: NODE_VERSION
+        value: 18.0.0
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: orbital-backend
+          envVarKey: RENDER_EXTERNAL_URL
