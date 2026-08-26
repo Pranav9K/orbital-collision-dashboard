@@ -13,8 +13,9 @@ export default function ConjunctionTable() {
   const selectSatellite = useAppStore((s) => s.selectSatellite);
   const selectedConjunctionId = useAppStore((s) => s.selectedConjunctionId);
 
-  const [sortField, setSortField] = useState('risk_score');
-  const [sortAsc, setSortAsc] = useState(false);
+  const sortField = useAppStore((s) => s.conjSortField);
+  const sortAsc = useAppStore((s) => s.conjSortAsc);
+  const setSort = useAppStore((s) => s.setConjSort);
 
   const sorted = [...conjunctions].sort((a, b) => {
     let cmp = 0;
@@ -27,13 +28,18 @@ export default function ConjunctionTable() {
   });
 
   const handleSort = (field) => {
-    if (sortField === field) { setSortAsc(!sortAsc); }
-    else { setSortField(field); setSortAsc(false); }
+    if (sortField === field) { setSort(field, !sortAsc); }
+    else { setSort(field, false); }
   };
 
   const handleRowClick = (conj) => {
-    selectConjunction(conj.id);
-    selectSatellite(conj.object1_norad_id);
+    if (selectedConjunctionId === conj.id) {
+      selectConjunction(null);
+      selectSatellite(null);
+    } else {
+      selectConjunction(conj.id);
+      selectSatellite(conj.object1_norad_id);
+    }
   };
 
   if (conjunctions.length === 0) {

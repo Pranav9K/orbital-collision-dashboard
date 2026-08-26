@@ -19,8 +19,12 @@ export const useAppStore = create((set, get) => ({
   isPlaying: false,
   playbackSpeed: 1,
   isLoading: true,
+  loadingProgress: 0,
+  loadingMessage: 'Initializing...',
   error: null,
   searchQuery: '',
+  conjSortField: 'risk_score',
+  conjSortAsc: false,
   activeFilters: {
     payload: true,
     debris: true,
@@ -29,16 +33,22 @@ export const useAppStore = create((set, get) => ({
 
   // Actions
   loadInitialData: async () => {
-    set({ isLoading: true, error: null });
+    set({ isLoading: true, error: null, loadingProgress: 0, loadingMessage: 'Connecting to servers...' });
     try {
+      let completed = 0;
+      const updateProgress = (msg) => {
+        completed++;
+        set({ loadingProgress: (completed / 6) * 100, loadingMessage: msg });
+      };
+
       const [satResult, posResult, conjResult, alertResult, timelineResult, statsResult] =
         await Promise.allSettled([
-          api.fetchSatellites({ per_page: 20000 }),
-          api.fetchPositions(),
-          api.fetchConjunctions(),
-          api.fetchAlerts(),
-          api.fetchTimeline(),
-          api.fetchCatalogStats(),
+          api.fetchSatellites({ per_page: 20000 }).then(r => { updateProgress('Fetching satellite catalog...'); return r; }),
+          api.fetchPositions().then(r => { updateProgress('Calculating orbital positions...'); return r; }),
+          api.fetchConjunctions().then(r => { updateProgress('Screening conjunctions...'); return r; }),
+          api.fetchAlerts().then(r => { updateProgress('Analyzing risk factors...'); return r; }),
+          api.fetchTimeline().then(r => { updateProgress('Generating timeline...'); return r; }),
+          api.fetchCatalogStats().then(r => { updateProgress('Finalizing data...'); return r; }),
         ]);
 
       set({
@@ -56,8 +66,13 @@ export const useAppStore = create((set, get) => ({
             : [],
         stats:
           statsResult.status === 'fulfilled' ? statsResult.value : null,
-        isLoading: false,
       });
+      
+      // Keep loading screen up for a tiny bit to show 100%
+      setTimeout(() => {
+        set({ isLoading: false });
+      }, 500);
+      
     } catch (e) {
       set({
         isLoading: false,
@@ -108,6 +123,7 @@ export const useAppStore = create((set, get) => ({
   setPlaying: (playing) => set({ isPlaying: playing }),
   setPlaybackSpeed: (speed) => set({ playbackSpeed: speed }),
   setSearchQuery: (query) => set({ searchQuery: query }),
+  setConjSort: (field, asc) => set({ conjSortField: field, conjSortAsc: asc }),
 
   toggleFilter: (filter) => {
     const current = get().activeFilters;

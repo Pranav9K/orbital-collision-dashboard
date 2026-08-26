@@ -5,6 +5,7 @@ import { Search, Satellite, Trash2, Rocket } from 'lucide-react';
 import { useMemo } from 'react';
 import { useAppStore } from '../../store/appStore';
 import { getObjectTypeColor } from '../../types';
+import FilterBar from '../Controls/FilterBar';
 
 export default function ObjectList() {
   const satellites = useAppStore((s) => s.satellites);
@@ -12,6 +13,7 @@ export default function ObjectList() {
   const setSearchQuery = useAppStore((s) => s.setSearchQuery);
   const selectSatellite = useAppStore((s) => s.selectSatellite);
   const selectedSatelliteId = useAppStore((s) => s.selectedSatelliteId);
+  const selectConjunction = useAppStore((s) => s.selectConjunction);
 
   const activeFilters = useAppStore((s) => s.activeFilters);
 
@@ -52,7 +54,8 @@ export default function ObjectList() {
         <span className="section-header__badge">{filtered.length}</span>
       </div>
       <div style={{ padding: 'var(--space-sm)', paddingTop: 0 }}>
-        <div className="search-wrapper">
+        <FilterBar />
+        <div className="search-wrapper" style={{ marginTop: 'var(--space-sm)' }}>
           <Search size={14} />
           <input
             type="text"
@@ -67,7 +70,10 @@ export default function ObjectList() {
       <div className="object-list" style={{ flex: 1, overflowY: 'auto' }}>
         {filtered.slice(0, 200).map((sat) => (
           <div key={sat.norad_id} className={`object-item ${selectedSatelliteId === sat.norad_id ? 'object-item--selected' : ''}`}
-            onClick={() => selectSatellite(sat.norad_id)}>
+            onClick={() => {
+              selectSatellite(sat.norad_id);
+              selectConjunction(null);
+            }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-xs)' }}>
               <span style={{ color: getObjectTypeColor(sat.object_type) }}>{getIcon(sat.object_type)}</span>
               <span className="object-item__name">{sat.name}</span>

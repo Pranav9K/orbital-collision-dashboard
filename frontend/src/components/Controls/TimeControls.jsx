@@ -21,7 +21,7 @@ export default function TimeControls() {
   useEffect(() => {
     if (isPlaying) {
       intervalRef.current = setInterval(() => {
-        const newTime = new Date(simulationTime.getTime() + playbackSpeed * 1000);
+        const newTime = new Date(simulationTime.getTime() + playbackSpeed * 100);
         setSimulationTime(newTime);
       }, 100);
     } else if (intervalRef.current) {

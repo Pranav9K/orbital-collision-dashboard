@@ -14,19 +14,24 @@ import { useAppStore } from './store/appStore';
 
 import GlobeView from './components/Globe/GlobeView';
 import StatsBar from './components/Dashboard/StatsBar';
+import { Shield } from 'lucide-react';
 import ConjunctionTable from './components/Dashboard/ConjunctionTable';
 import RiskTimeline from './components/Dashboard/RiskTimeline';
 import AlertPanel from './components/Dashboard/AlertPanel';
 import ObjectList from './components/Sidebar/ObjectList';
 import ObjectDetail from './components/Sidebar/ObjectDetail';
+import ConjunctionDetail from './components/Sidebar/ConjunctionDetail';
 import TimeControls from './components/Controls/TimeControls';
 import FilterBar from './components/Controls/FilterBar';
 
 export default function App() {
   const isLoading = useAppStore((s) => s.isLoading);
+  const loadingProgress = useAppStore((s) => s.loadingProgress);
+  const loadingMessage = useAppStore((s) => s.loadingMessage);
   const error = useAppStore((s) => s.error);
   const loadInitialData = useAppStore((s) => s.loadInitialData);
   const refreshPositions = useAppStore((s) => s.refreshPositions);
+  const selectedConjunctionId = useAppStore((s) => s.selectedConjunctionId);
 
   // Load data on mount
   useEffect(() => {
@@ -43,17 +48,27 @@ export default function App() {
 
   if (isLoading) {
     return (
-      <div className="loading-overlay">
-        <div className="loading-spinner" />
-        <div className="loading-text">Initializing orbital data...</div>
-        <div
-          style={{
-            fontSize: 11,
-            color: 'var(--text-muted)',
-            marginTop: 4,
-          }}
-        >
-          Fetching TLEs from CelesTrak · Propagating orbits · Screening conjunctions
+      <div className="loading-overlay" style={{ background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', width: '100vw', zIndex: 9999, position: 'fixed' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
+          <Shield size={36} color="var(--accent-cyan)" />
+          <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '2px', textTransform: 'uppercase' }}>Orbital Shield</div>
+        </div>
+        
+        <div style={{ width: '300px', background: 'var(--bg-elevated)', borderRadius: '4px', overflow: 'hidden', height: '6px', marginBottom: '16px', border: '1px solid var(--border-subtle)' }}>
+          <div style={{ 
+            height: '100%', 
+            width: `${loadingProgress}%`, 
+            background: 'var(--accent-cyan)', 
+            transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+            boxShadow: '0 0 10px var(--accent-cyan)'
+          }} />
+        </div>
+
+        <div style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 500, letterSpacing: '0.5px' }}>
+          {loadingMessage || 'Initializing orbital data...'}
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
+          {Math.round(loadingProgress)}% Complete
         </div>
       </div>
     );
@@ -89,9 +104,8 @@ export default function App() {
 
       {/* Left Sidebar */}
       <aside className="app-sidebar">
-        <FilterBar />
         <ObjectList />
-        <ObjectDetail />
+        {selectedConjunctionId ? <ConjunctionDetail /> : <ObjectDetail />}
       </aside>
 
       {/* Center Globe */}

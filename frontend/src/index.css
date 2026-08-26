@@ -6,48 +6,48 @@
 /* ---- CSS Custom Properties ---- */
 :root {
   /* Base palette */
-  --bg-primary: #000000;
-  --bg-secondary: #080808;
-  --bg-tertiary: #111111;
-  --bg-elevated: #1a1a1a;
+  --bg-primary: #050505;
+  --bg-secondary: #0f0f0f;
+  --bg-tertiary: #1a1a1a;
+  --bg-elevated: #242424;
 
   /* Glass */
   --glass-bg: rgba(10, 10, 10, 0.85);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-shadow: 0 4px 16px rgba(0, 0, 0, 0.8);
-  --glass-blur: 8px;
+  --glass-border: rgba(255, 255, 255, 0.05);
+  --glass-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+  --glass-blur: 16px;
 
   /* Text */
-  --text-primary: #e8edf5;
-  --text-secondary: #8899b4;
-  --text-muted: #556680;
-  --text-inverse: #060a14;
+  --text-primary: #f5f5f5;
+  --text-secondary: #a3a3a3;
+  --text-muted: #737373;
+  --text-inverse: #050505;
 
   /* Accent colors */
-  --accent-cyan: #00d4ff;
-  --accent-cyan-dim: rgba(0, 212, 255, 0.15);
-  --accent-blue: #3b82f6;
-  --accent-indigo: #6366f1;
-  --accent-purple: #a855f7;
-  --accent-gold: #f59e0b;
-  --accent-gold-dim: rgba(245, 158, 11, 0.15);
+  --accent-cyan: #fbbf24;
+  --accent-cyan-dim: rgba(251, 191, 36, 0.15);
+  --accent-blue: #f59e0b;
+  --accent-indigo: #ea580c;
+  --accent-purple: #dc2626;
+  --accent-gold: #fbbf24;
+  --accent-gold-dim: rgba(251, 191, 36, 0.15);
 
   /* Risk colors */
-  --risk-low: #10b981;
-  --risk-low-bg: rgba(16, 185, 129, 0.12);
-  --risk-medium: #f59e0b;
-  --risk-medium-bg: rgba(245, 158, 11, 0.12);
-  --risk-high: #ef4444;
-  --risk-high-bg: rgba(239, 68, 68, 0.12);
+  --risk-low: #fcd34d;
+  --risk-low-bg: rgba(252, 211, 77, 0.15);
+  --risk-medium: #fbbf24;
+  --risk-medium-bg: rgba(251, 191, 36, 0.15);
+  --risk-high: #ea580c;
+  --risk-high-bg: rgba(234, 88, 12, 0.15);
   --risk-critical: #dc2626;
-  --risk-critical-bg: rgba(220, 38, 38, 0.15);
+  --risk-critical-bg: rgba(220, 38, 38, 0.2);
 
   /* Object type colors */
-  --color-payload: #00d4ff;
-  --color-debris: #ef4444;
-  --color-rocket-body: #f59e0b;
-  --color-station: #fbbf24;
-  --color-unknown: #6b7280;
+  --color-payload: #fbbf24;
+  --color-debris: #ea580c;
+  --color-rocket-body: #dc2626;
+  --color-station: #fcd34d;
+  --color-unknown: #737373;
 
   /* Borders & Radii */
   --border-subtle: 1px solid rgba(255, 255, 255, 0.08);
@@ -167,6 +167,7 @@ html, body, #root {
 .app-header {
   grid-area: header;
   z-index: var(--z-panels);
+  justify-self: center;
 }
 
 .app-sidebar {
@@ -215,11 +216,18 @@ html, body, #root {
 .stats-bar {
   display: flex;
   align-items: center;
-  gap: var(--space-lg);
-  padding: var(--space-md) var(--space-xl);
-  background: rgba(10, 10, 10, 0.85);
-  backdrop-filter: blur(8px);
+  justify-content: space-between;
+  gap: var(--space-xl);
+  padding: 6px 24px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   border-bottom: var(--border-subtle);
+  border-radius: 0;
+  box-shadow: var(--glass-shadow);
+  width: 100%;
+  max-width: none;
+  margin: 0;
 }
 
 .stats-bar__brand {

@@ -14,9 +14,26 @@ export default function GlobeView() {
   const positions = useAppStore((s) => s.positions);
   const conjunctions = useAppStore((s) => s.conjunctions);
   const selectedSatelliteId = useAppStore((s) => s.selectedSatelliteId);
+  const selectedConjunctionId = useAppStore((s) => s.selectedConjunctionId);
   const selectSatellite = useAppStore((s) => s.selectSatellite);
+  const selectConjunction = useAppStore((s) => s.selectConjunction);
   const activeFilters = useAppStore((s) => s.activeFilters);
   const isPlaying = useAppStore((s) => s.isPlaying);
+  const conjSortField = useAppStore((s) => s.conjSortField);
+  const conjSortAsc = useAppStore((s) => s.conjSortAsc);
+
+  // Compute visible conjunctions (matches ConjunctionTable.jsx)
+  const visibleConjunctions = useMemo(() => {
+    return [...conjunctions].sort((a, b) => {
+      let cmp = 0;
+      switch (conjSortField) {
+        case 'risk_score': cmp = a.risk_score - b.risk_score; break;
+        case 'miss_distance_km': cmp = a.miss_distance_km - b.miss_distance_km; break;
+        case 'tca': cmp = new Date(a.tca).getTime() - new Date(b.tca).getTime(); break;
+      }
+      return conjSortAsc ? cmp : -cmp;
+    }).slice(0, 50);
+  }, [conjunctions, conjSortField, conjSortAsc]);
 
   // Filter positions based on active filters
   const filteredPositions = useMemo(() => {
@@ -31,9 +48,9 @@ export default function GlobeView() {
 
   // Compute data for globe points
   const globePoints = useMemo(() => {
-    // Collect NORAD IDs of objects involved in conjunctions
+    // Collect NORAD IDs of objects involved in visible conjunctions
     const conjunctionNoradIds = new Set();
-    conjunctions.forEach(c => {
+    visibleConjunctions.forEach(c => {
       conjunctionNoradIds.add(c.object1_norad_id);
       conjunctionNoradIds.add(c.object2_norad_id);
     });
@@ -64,9 +81,9 @@ export default function GlobeView() {
     }).filter(Boolean);
   }, [filteredPositions, positions, selectedSatelliteId]);
 
-  // Convert conjunctions to arcs
+  // Convert visible conjunctions to arcs
   const conjunctionArcs = useMemo(() => {
-    return conjunctions
+    return visibleConjunctions
       .filter(
         (c) =>
           c.obj1_lat != null &&
@@ -74,16 +91,23 @@ export default function GlobeView() {
           c.obj2_lat != null &&
           c.obj2_lon != null
       )
-      .map((c) => ({
-        startLat: c.obj1_lat,
-        startLng: c.obj1_lon,
-        endLat: c.obj2_lat,
-        endLng: c.obj2_lon,
-        color: getRiskColor(c.risk_score),
-        risk_score: c.risk_score,
-        label: `${c.object1_name} ↔ ${c.object2_name}`,
-      }));
-  }, [conjunctions]);
+      .map((c) => {
+        const isSelected = selectedConjunctionId === c.id;
+        const color = getRiskColor(c.risk_score);
+        return {
+          id: c.id,
+          object1_norad_id: c.object1_norad_id,
+          startLat: c.obj1_lat,
+          startLng: c.obj1_lon,
+          endLat: c.obj2_lat,
+          endLng: c.obj2_lon,
+          color: selectedConjunctionId && !isSelected ? color + '40' : color,
+          risk_score: c.risk_score,
+          label: `${c.object1_name} ↔ ${c.object2_name}`,
+          isSelected,
+        };
+      });
+  }, [visibleConjunctions, selectedConjunctionId]);
 
   const [size, setSize] = useState({ width: 0, height: 0 });
 
@@ -126,9 +150,26 @@ export default function GlobeView() {
     return () => observer.disconnect();
   }, []);
 
-  // Zoom to selected satellite
+  // Zoom to selected conjunction or satellite
   useEffect(() => {
-    if (selectedSatelliteId && globeRef.current) {
+    if (!globeRef.current) return;
+
+    if (selectedConjunctionId) {
+      const conj = conjunctions.find(c => c.id === selectedConjunctionId);
+      if (conj && conj.obj1_lat != null && conj.obj2_lat != null) {
+        const lat = (conj.obj1_lat + conj.obj2_lat) / 2;
+        let lon1 = conj.obj1_lon;
+        let lon2 = conj.obj2_lon;
+        if (Math.abs(lon1 - lon2) > 180) {
+           if (lon1 < 0) lon1 += 360;
+           if (lon2 < 0) lon2 += 360;
+        }
+        let lon = (lon1 + lon2) / 2;
+        if (lon > 180) lon -= 360;
+
+        globeRef.current.pointOfView({ lat, lng: lon, altitude: 1.8 }, 1000);
+      }
+    } else if (selectedSatelliteId) {
       const sat = positions.find((p) => p.norad_id === selectedSatelliteId);
       if (sat) {
         globeRef.current.pointOfView(
@@ -137,13 +178,31 @@ export default function GlobeView() {
         );
       }
     }
-  }, [selectedSatelliteId, positions]);
+  }, [selectedConjunctionId, selectedSatelliteId, conjunctions, positions]);
 
   const handlePointClick = useCallback(
     (point) => {
-      selectSatellite(point.norad_id);
+      if (selectedSatelliteId === point.norad_id) {
+        selectSatellite(null);
+      } else {
+        selectSatellite(point.norad_id);
+        selectConjunction(null);
+      }
     },
-    [selectSatellite]
+    [selectedSatelliteId, selectSatellite, selectConjunction]
+  );
+
+  const handleArcClick = useCallback(
+    (arc) => {
+      if (selectedConjunctionId === arc.id) {
+        selectConjunction(null);
+        selectSatellite(null);
+      } else {
+        selectConjunction(arc.id);
+        selectSatellite(arc.object1_norad_id);
+      }
+    },
+    [selectedConjunctionId, selectConjunction, selectSatellite]
   );
 
   return (
@@ -192,7 +251,8 @@ export default function GlobeView() {
         arcDashLength={0.4}
         arcDashGap={0.2}
         arcDashAnimateTime={1500}
-        arcStroke={0.5}
+        arcStroke={(arc) => (arc.isSelected ? 1.5 : 0.5)}
+        onArcClick={handleArcClick}
         arcLabel={(arc) => {
           return `<div style="
             background: rgba(10, 14, 26, 0.9);

@@ -23,7 +23,7 @@ export default function StatsBar() {
   return (
     <header className="stats-bar app-header" id="stats-bar">
       <div className="stats-bar__brand">
-        <Shield size={22} color="#00d4ff" />
+        <Shield size={22} color="#fbbf24" />
         <div>
           <div className="stats-bar__brand-name">Orbital Shield</div>
           <div className="stats-bar__brand-tag">Collision Risk Dashboard</div>

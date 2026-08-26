@@ -66,18 +66,19 @@ export function getRiskColor(score) {
   const level = getRiskLevel(score);
   switch (level) {
     case 'critical': return '#dc2626';
-    case 'high': return '#ef4444';
-    case 'medium': return '#f59e0b';
-    case 'low': return '#10b981';
+    case 'high': return '#ea580c';
+    case 'medium': return '#fbbf24';
+    case 'low': return '#fcd34d';
   }
 }
 
 export function getObjectTypeColor(type) {
   switch (type?.toUpperCase()) {
-    case 'PAYLOAD': return '#00d4ff';
-    case 'DEBRIS': return '#ef4444';
-    case 'ROCKET BODY': return '#f59e0b';
-    default: return '#6b7280';
+    case 'PAYLOAD': return '#fbbf24';
+    case 'DEBRIS': return '#ea580c';
+    case 'ROCKET BODY': return '#dc2626';
+    case 'STATION': return '#fcd34d';
+    default: return '#737373';
   }
 }
 
