@@ -1,7 +1,7 @@
 /**
  * Detail panel for a selected orbital object.
  */
-import { X, MapPin, Gauge, Orbit } from 'lucide-react';
+import { X, MapPin, Gauge, Orbit, Info, Crosshair, Navigation } from 'lucide-react';
 import { useMemo } from 'react';
 import { useAppStore } from '../../store/appStore';
 import { getObjectTypeColor } from '../../types';
@@ -21,81 +21,145 @@ export default function ObjectDetail() {
 
   return (
     <div className="glass-panel" id="object-detail">
-      <div className="section-header">
-        <span className="section-header__title" style={{ color }}>{satellite.name}</span>
-        <button className="icon-button" onClick={() => selectSatellite(null)} title="Close">
-          <X size={14} />
+      <div className="section-header" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '12px' }}>
+        <span className="section-header__title" style={{ display: 'flex', alignItems: 'center', gap: '6px', color }}>
+          <Info size={14} /> SATELLITE DETAIL
+        </span>
+        <button 
+          className="icon-button" 
+          onClick={() => selectSatellite(null)} 
+          title="Close"
+          style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+        >
+          <X size={16} />
         </button>
       </div>
-      <div style={{ padding: 'var(--space-sm)', display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
-        <div className="detail-row">
-          <span className="detail-row__label">NORAD ID</span>
-          <span className="detail-row__value mono">{satellite.norad_id}</span>
+      
+      <div style={{ padding: 'var(--space-md)', display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+        
+        {/* Name and ID Block */}
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          background: `linear-gradient(135deg, rgba(10,10,10,0.4), ${color}15)`,
+          padding: '16px',
+          borderRadius: 'var(--radius-md)',
+          border: `1px solid ${color}30`
+        }}>
+          <div>
+            <div style={{ fontSize: '10px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '1px' }}>Object Name</div>
+            <div style={{ fontSize: '20px', fontWeight: 800, color: color, lineHeight: 1.2, marginTop: '2px' }}>{satellite.name}</div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '10px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '1px' }}>NORAD ID</div>
+            <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{satellite.norad_id}</div>
+          </div>
         </div>
-        <div className="detail-row">
-          <span className="detail-row__label">Int'l Designator</span>
-          <span className="detail-row__value mono">{satellite.intl_designator || '—'}</span>
-        </div>
-        <div className="detail-row">
-          <span className="detail-row__label">Type</span>
-          <span className="detail-row__value" style={{ color }}>{satellite.object_type}</span>
+
+        {/* Info Block */}
+        <div style={{ display: 'flex', alignItems: 'stretch', gap: '8px' }}>
+          <div style={{ 
+            flex: 1, 
+            background: 'rgba(255,255,255,0.02)', 
+            padding: '12px', 
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid rgba(255,255,255,0.05)',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '4px' }}>TYPE</div>
+            <div style={{ fontSize: '13px', fontWeight: 700, color }}>{satellite.object_type || 'UNKNOWN'}</div>
+          </div>
+          <div style={{ 
+            flex: 1, 
+            background: 'rgba(255,255,255,0.02)', 
+            padding: '12px', 
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid rgba(255,255,255,0.05)',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '4px' }}>INT'L DESIGNATOR</div>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)' }}>{satellite.intl_designator || '—'}</div>
+          </div>
         </div>
 
         {position && (
-          <>
-            <div className="detail-section" style={{ marginTop: 'var(--space-xs)' }}>
-              <div className="detail-section__header"><MapPin size={12} /> Current Position</div>
-              <div className="detail-row">
-                <span className="detail-row__label">Latitude</span>
-                <span className="detail-row__value mono">{position.latitude?.toFixed(4)}°</span>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: '1fr 1fr', 
+            gap: '8px',
+            marginTop: '4px'
+          }}>
+            <div style={{ gridColumn: '1 / -1', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <MapPin size={12} /> Current Position
+            </div>
+            
+            <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: 'var(--radius-sm)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>
+                <Navigation size={10} /> Latitude
               </div>
-              <div className="detail-row">
-                <span className="detail-row__label">Longitude</span>
-                <span className="detail-row__value mono">{position.longitude?.toFixed(4)}°</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-row__label">Altitude</span>
-                <span className="detail-row__value mono">{position.altitude_km?.toFixed(1)} km</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-row__label">Speed</span>
-                <span className="detail-row__value mono"><Gauge size={10} /> {position.speed_km_s?.toFixed(3)} km/s</span>
+              <div style={{ fontSize: '14px', fontWeight: 600, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>
+                {position.latitude?.toFixed(4)} <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>°</span>
               </div>
             </div>
-          </>
+
+            <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: 'var(--radius-sm)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>
+                <Navigation size={10} /> Longitude
+              </div>
+              <div style={{ fontSize: '14px', fontWeight: 600, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>
+                {position.longitude?.toFixed(4)} <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>°</span>
+              </div>
+            </div>
+
+            <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: 'var(--radius-sm)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>
+                <Crosshair size={10} /> Altitude
+              </div>
+              <div style={{ fontSize: '14px', fontWeight: 600, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>
+                {position.altitude_km?.toFixed(1)} <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>km</span>
+              </div>
+            </div>
+
+            <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: 'var(--radius-sm)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>
+                <Gauge size={10} /> Speed
+              </div>
+              <div style={{ fontSize: '14px', fontWeight: 600, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>
+                {position.speed_km_s?.toFixed(3)} <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>km/s</span>
+              </div>
+            </div>
+          </div>
         )}
 
-        <div className="detail-section" style={{ marginTop: 'var(--space-xs)' }}>
-          <div className="detail-section__header"><Orbit size={12} /> Orbital Parameters</div>
-          <div className="detail-row">
-            <span className="detail-row__label">Inclination</span>
-            <span className="detail-row__value mono">{satellite.inclination_deg?.toFixed(4)}°</span>
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: '1fr 1fr', 
+          gap: '8px',
+          marginTop: '4px'
+        }}>
+          <div style={{ gridColumn: '1 / -1', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px' }}>
+            <Orbit size={12} /> Orbital Parameters
           </div>
-          <div className="detail-row">
-            <span className="detail-row__label">Eccentricity</span>
-            <span className="detail-row__value mono">{satellite.eccentricity?.toFixed(7)}</span>
+          
+          <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: 'var(--radius-sm)' }}>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '2px', textTransform: 'uppercase' }}>Inclination</div>
+            <div style={{ fontSize: '13px', fontWeight: 600, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>{satellite.inclination_deg?.toFixed(4)}°</div>
           </div>
-          <div className="detail-row">
-            <span className="detail-row__label">Period</span>
-            <span className="detail-row__value mono">{satellite.period_min?.toFixed(2)} min</span>
+          <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: 'var(--radius-sm)' }}>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '2px', textTransform: 'uppercase' }}>Period</div>
+            <div style={{ fontSize: '13px', fontWeight: 600, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>{satellite.period_min?.toFixed(2)} min</div>
           </div>
-          <div className="detail-row">
-            <span className="detail-row__label">Apogee</span>
-            <span className="detail-row__value mono">{satellite.apogee_km?.toFixed(1)} km</span>
+          <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: 'var(--radius-sm)' }}>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '2px', textTransform: 'uppercase' }}>Apogee</div>
+            <div style={{ fontSize: '13px', fontWeight: 600, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>{satellite.apogee_km?.toFixed(1)} km</div>
           </div>
-          <div className="detail-row">
-            <span className="detail-row__label">Perigee</span>
-            <span className="detail-row__value mono">{satellite.perigee_km?.toFixed(1)} km</span>
-          </div>
-          <div className="detail-row">
-            <span className="detail-row__label">RAAN</span>
-            <span className="detail-row__value mono">{satellite.raan_deg?.toFixed(4)}°</span>
-          </div>
-          <div className="detail-row">
-            <span className="detail-row__label">Mean Motion</span>
-            <span className="detail-row__value mono">{satellite.mean_motion?.toFixed(8)} rev/d</span>
+          <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: 'var(--radius-sm)' }}>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '2px', textTransform: 'uppercase' }}>Perigee</div>
+            <div style={{ fontSize: '13px', fontWeight: 600, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>{satellite.perigee_km?.toFixed(1)} km</div>
           </div>
         </div>
+
       </div>
     </div>
   );
