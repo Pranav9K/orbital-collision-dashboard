@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Sortable conjunction events table with risk badges.
  */
 
@@ -8,21 +8,22 @@ import { useAppStore } from '../../store/appStore';
 import { getRiskLevel, formatCountdown } from '../../types';
 
 export default function ConjunctionTable() {
-  const conjunctions = useAppStore((s) => s.conjunctions);
-  const selectConjunction = useAppStore((s) => s.selectConjunction);
-  const selectSatellite = useAppStore((s) => s.selectSatellite);
+  const conjunctions          = useAppStore((s) => s.conjunctions);
+  const selectConjunction     = useAppStore((s) => s.selectConjunction);
+  const selectSatellite       = useAppStore((s) => s.selectSatellite);
   const selectedConjunctionId = useAppStore((s) => s.selectedConjunctionId);
+  const selectedSatelliteId   = useAppStore((s) => s.selectedSatelliteId);
 
   const sortField = useAppStore((s) => s.conjSortField);
-  const sortAsc = useAppStore((s) => s.conjSortAsc);
-  const setSort = useAppStore((s) => s.setConjSort);
+  const sortAsc   = useAppStore((s) => s.conjSortAsc);
+  const setSort   = useAppStore((s) => s.setConjSort);
 
   const sorted = [...conjunctions].sort((a, b) => {
     let cmp = 0;
     switch (sortField) {
-      case 'risk_score': cmp = a.risk_score - b.risk_score; break;
+      case 'risk_score':       cmp = a.risk_score - b.risk_score; break;
       case 'miss_distance_km': cmp = a.miss_distance_km - b.miss_distance_km; break;
-      case 'tca': cmp = new Date(a.tca).getTime() - new Date(b.tca).getTime(); break;
+      case 'tca':              cmp = new Date(a.tca).getTime() - new Date(b.tca).getTime(); break;
     }
     return sortAsc ? cmp : -cmp;
   });
@@ -40,6 +41,12 @@ export default function ConjunctionTable() {
       selectConjunction(conj.id);
       selectSatellite(conj.object1_norad_id);
     }
+  };
+
+  const handleObjectClick = (e, conjId, noradId) => {
+    e.stopPropagation();
+    selectConjunction(conjId);
+    selectSatellite(noradId);
   };
 
   if (conjunctions.length === 0) {
@@ -77,11 +84,35 @@ export default function ConjunctionTable() {
               const level = getRiskLevel(conj.risk_score);
               const isSelected = selectedConjunctionId === conj.id;
               return (
-                <tr key={conj.id} onClick={() => handleRowClick(conj)}
-                  style={isSelected ? { background: 'rgba(0, 212, 255, 0.08)' } : undefined}>
+                <tr
+                  key={conj.id}
+                  onClick={() => handleRowClick(conj)}
+                  style={isSelected ? { background: 'rgba(0, 212, 255, 0.08)' } : undefined}
+                >
                   <td>
-                    <div style={{ fontSize: 11, fontWeight: 600 }}>{conj.object1_name || `#${conj.object1_norad_id}`}</div>
-                    <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>↔ {conj.object2_name || `#${conj.object2_norad_id}`}</div>
+                    <div
+                      onClick={(e) => handleObjectClick(e, conj.id, conj.object1_norad_id)}
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: selectedSatelliteId === conj.object1_norad_id ? 'var(--accent-cyan)' : '#e8edf5',
+                        cursor: 'pointer',
+                      }}
+                      title="Click to zoom Object 1"
+                    >
+                      {conj.object1_name || `#${conj.object1_norad_id}`}
+                    </div>
+                    <div
+                      onClick={(e) => handleObjectClick(e, conj.id, conj.object2_norad_id)}
+                      style={{
+                        fontSize: 10,
+                        color: selectedSatelliteId === conj.object2_norad_id ? 'var(--accent-gold)' : 'var(--text-muted)',
+                        cursor: 'pointer',
+                      }}
+                      title="Click to zoom Object 2"
+                    >
+                      ↔ {conj.object2_name || `#${conj.object2_norad_id}`}
+                    </div>
                   </td>
                   <td className="mono">{formatCountdown(conj.tca)}</td>
                   <td className="mono">{conj.miss_distance_km?.toFixed(1)} km</td>

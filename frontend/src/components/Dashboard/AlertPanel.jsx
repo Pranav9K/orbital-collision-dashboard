@@ -1,18 +1,31 @@
-/**
+﻿/**
  * Real-time alert panel for high-risk conjunction events.
  */
-import { AlertTriangle, ArrowRight } from 'lucide-react';
+import { AlertTriangle, ArrowRight, MapPin } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
 import { formatCountdown, getRiskLevel } from '../../types';
 
 export default function AlertPanel() {
-  const alerts = useAppStore((s) => s.alerts);
+  const alerts            = useAppStore((s) => s.alerts);
   const selectConjunction = useAppStore((s) => s.selectConjunction);
-  const selectSatellite = useAppStore((s) => s.selectSatellite);
+  const selectSatellite   = useAppStore((s) => s.selectSatellite);
+  const selectedConjId    = useAppStore((s) => s.selectedConjunctionId);
+  const selectedSatId     = useAppStore((s) => s.selectedSatelliteId);
 
   const handleAlertClick = (alert) => {
-    selectConjunction(alert.id);
-    selectSatellite(alert.object1_norad_id);
+    if (selectedConjId === alert.id) {
+      selectConjunction(null);
+      selectSatellite(null);
+    } else {
+      selectConjunction(alert.id);
+      selectSatellite(alert.object1_norad_id);
+    }
+  };
+
+  const handleObjectClick = (e, conjId, noradId) => {
+    e.stopPropagation();
+    selectConjunction(conjId);
+    selectSatellite(noradId);
   };
 
   return (
@@ -37,19 +50,57 @@ export default function AlertPanel() {
         ) : (
           alerts.map((alert) => {
             const level = getRiskLevel(alert.risk_score);
+            const isSelected = selectedConjId === alert.id;
             return (
-              <div key={alert.id} className="alert-item" onClick={() => handleAlertClick(alert)}
-                style={{ cursor: 'pointer', borderLeftColor: level === 'critical' ? 'var(--risk-critical)' : 'var(--risk-high)' }}>
+              <div
+                key={alert.id}
+                className="alert-item"
+                onClick={() => handleAlertClick(alert)}
+                style={{
+                  cursor: 'pointer',
+                  borderLeftColor: level === 'critical' ? 'var(--risk-critical)' : 'var(--risk-high)',
+                  background: isSelected ? 'rgba(0, 212, 255, 0.08)' : undefined,
+                  transition: 'all 0.2s ease',
+                }}
+              >
                 <div className="alert-item__header">
                   <span className="alert-item__title">⚠ Risk Score: {alert.risk_score}</span>
                   <span className="alert-item__countdown">{formatCountdown(alert.tca)}</span>
                 </div>
-                <div className="alert-item__detail">
-                  <strong>{alert.object1_name || `#${alert.object1_norad_id}`}</strong>
-                  {' '}<ArrowRight size={10} style={{ verticalAlign: 'middle' }} />{' '}
-                  <strong>{alert.object2_name || `#${alert.object2_norad_id}`}</strong>
+                <div className="alert-item__detail" style={{ marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                  <span
+                    onClick={(e) => handleObjectClick(e, alert.id, alert.object1_norad_id)}
+                    style={{
+                      color: selectedSatId === alert.object1_norad_id ? 'var(--accent-cyan)' : '#e8edf5',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      padding: '1px 4px',
+                      borderRadius: '3px',
+                      background: selectedSatId === alert.object1_norad_id ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.04)',
+                      border: selectedSatId === alert.object1_norad_id ? '1px solid var(--accent-cyan)' : '1px solid transparent',
+                    }}
+                    title="Click to zoom Object 1 on globe"
+                  >
+                    {alert.object1_name || `#${alert.object1_norad_id}`}
+                  </span>
+                  <ArrowRight size={10} style={{ color: 'var(--text-muted)' }} />
+                  <span
+                    onClick={(e) => handleObjectClick(e, alert.id, alert.object2_norad_id)}
+                    style={{
+                      color: selectedSatId === alert.object2_norad_id ? 'var(--accent-gold)' : '#e8edf5',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      padding: '1px 4px',
+                      borderRadius: '3px',
+                      background: selectedSatId === alert.object2_norad_id ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.04)',
+                      border: selectedSatId === alert.object2_norad_id ? '1px solid var(--accent-gold)' : '1px solid transparent',
+                    }}
+                    title="Click to zoom Object 2 on globe"
+                  >
+                    {alert.object2_name || `#${alert.object2_norad_id}`}
+                  </span>
                 </div>
-                <div className="alert-item__detail">
+                <div className="alert-item__detail" style={{ marginTop: '4px' }}>
                   Miss distance: <strong>{alert.miss_distance_km?.toFixed(2)} km</strong>
                   {alert.relative_velocity_km_s && (<> · Vel: <strong>{alert.relative_velocity_km_s.toFixed(1)} km/s</strong></>)}
                 </div>

@@ -174,3 +174,32 @@ def risk_timeline():
         "bins": n_bins,
         "timeline": timeline,
     })
+
+
+@conjunctions_bp.route("/conjunctions/<int:event_id>/maneuver", methods=["POST"])
+def suggest_maneuver(event_id):
+    """
+    Compute an evasive maneuver recommendation for a conjunction event.
+
+    Body params (JSON, all optional):
+        target_miss_km (float): Desired miss distance after maneuver (default: 5.0)
+        burn_lead_time_min (float): Minutes before TCA to fire thruster (default: 60.0)
+    """
+    from ..services.maneuver import recommend_maneuver
+
+    event = ConjunctionEvent.query.get(event_id)
+    if event is None:
+        return jsonify({"error": "Conjunction event not found"}), 404
+
+    data = request.get_json(silent=True) or {}
+    target_miss_km = float(data.get("target_miss_km", 5.0))
+    burn_lead_time_min = float(data.get("burn_lead_time_min", 60.0))
+
+    # Clamp to sane ranges
+    target_miss_km = max(1.0, min(target_miss_km, 100.0))
+    burn_lead_time_min = max(5.0, min(burn_lead_time_min, 720.0))
+
+    event_dict = event.to_dict()
+    result = recommend_maneuver(event_dict, target_miss_km=target_miss_km, burn_lead_time_min=burn_lead_time_min)
+
+    return jsonify(result)

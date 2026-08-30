@@ -109,3 +109,12 @@ export async function fetchTimeline(params) {
 export async function checkHealth() {
   return fetchJson(`${BASE_URL}/health`);
 }
+
+// ---- Maneuver ----
+
+export async function fetchManeuver(conjunctionId, params) {
+  return fetchJson(`${BASE_URL}/conjunctions/${conjunctionId}/maneuver`, {
+    method: 'POST',
+    body: JSON.stringify(params || {}),
+  });
+}

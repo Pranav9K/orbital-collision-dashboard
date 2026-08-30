@@ -1,5 +1,5 @@
-/* ========================================================================
-   Orbital Shield — Design System
+﻿/* ========================================================================
+   Orbital Shield â€” Design System
    Premium dark theme with glassmorphism, electric accents, and micro-animations
    ======================================================================== */
 
@@ -166,7 +166,7 @@ html, body, #root {
 
 .app-header {
   grid-area: header;
-  z-index: var(--z-panels);
+  z-index: 100;
   justify-self: center;
 }
 
@@ -821,3 +821,4 @@ html, body, #root {
     display: none;
   }
 }
+

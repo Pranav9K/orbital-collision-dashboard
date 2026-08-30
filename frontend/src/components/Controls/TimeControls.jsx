@@ -1,42 +1,50 @@
-/**
+﻿/**
  * Simulation time controls: play/pause, speed, time slider, and current time display.
  */
 import { useEffect, useRef, useCallback } from 'react';
 import { Play, Pause, RotateCcw, FastForward, Clock } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
 
-const SPEED_OPTIONS = [1, 2, 5, 10, 50, 100];
+const SPEED_OPTIONS = [1, 2, 5, 10, 25];
 
 export default function TimeControls() {
-  const simulationTime = useAppStore((s) => s.simulationTime);
-  const isPlaying = useAppStore((s) => s.isPlaying);
-  const playbackSpeed = useAppStore((s) => s.playbackSpeed);
+  const simulationTime    = useAppStore((s) => s.simulationTime);
+  const isPlaying         = useAppStore((s) => s.isPlaying);
+  const playbackSpeed     = useAppStore((s) => s.playbackSpeed);
   const setSimulationTime = useAppStore((s) => s.setSimulationTime);
-  const setPlaying = useAppStore((s) => s.setPlaying);
-  const setPlaybackSpeed = useAppStore((s) => s.setPlaybackSpeed);
-  const refreshPositions = useAppStore((s) => s.refreshPositions);
-  const intervalRef = useRef(null);
+  const setPlaying        = useAppStore((s) => s.setPlaying);
+  const setPlaybackSpeed  = useAppStore((s) => s.setPlaybackSpeed);
+  const refreshPositions  = useAppStore((s) => s.refreshPositions);
+  const intervalRef       = useRef(null);
+  const refreshRef        = useRef(null);
 
-  // Playback loop
+  // Playback loop — advances simulation clock
+  // At 1x: 1 real second = 1 simulated second
+  // At 10x: 1 real second = 10 simulated seconds
   useEffect(() => {
     if (isPlaying) {
+      const TICK_MS = 500; // update every half second for smooth motion
       intervalRef.current = setInterval(() => {
-        const newTime = new Date(simulationTime.getTime() + playbackSpeed * 100);
-        setSimulationTime(newTime);
-      }, 100);
+        const current = useAppStore.getState().simulationTime;
+        const advanceMs = playbackSpeed * TICK_MS; // at 1x: advance 500ms per tick
+        setSimulationTime(new Date(current.getTime() + advanceMs));
+      }, TICK_MS);
     } else if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [isPlaying, playbackSpeed, simulationTime, setSimulationTime]);
+  }, [isPlaying, playbackSpeed, setSimulationTime]);
 
-  // Periodically refresh positions based on playing state
+  // Periodically refresh orbital positions from backend
+  // When playing: every 5 seconds (smooth updates without overloading the API)
+  // When paused: every 60 seconds (background keep-alive)
   useEffect(() => {
-    const timer = setInterval(() => {
+    const interval = isPlaying ? 5000 : 60000;
+    refreshRef.current = setInterval(() => {
       const currentSimTime = useAppStore.getState().simulationTime;
       refreshPositions(currentSimTime.toISOString());
-    }, isPlaying ? 2000 : 30000);
-    return () => clearInterval(timer);
+    }, interval);
+    return () => { if (refreshRef.current) clearInterval(refreshRef.current); };
   }, [isPlaying, refreshPositions]);
 
   const handleReset = useCallback(() => {
@@ -52,7 +60,7 @@ export default function TimeControls() {
     setPlaybackSpeed(next);
   }, [playbackSpeed, setPlaybackSpeed]);
 
-  // Timeline slider: ±12h from now
+  // Timeline slider: +/-12h from now
   const nowMs = new Date().getTime();
   const rangeMin = nowMs - 12 * 60 * 60 * 1000;
   const rangeMax = nowMs + 12 * 60 * 60 * 1000;
