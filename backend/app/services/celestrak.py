@@ -18,13 +18,19 @@ _last_fetch_time = {}
 # Earth radius for apogee/perigee calculation
 EARTH_RADIUS_KM = 6371.0
 
+HTTP_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "en-US,en;q=0.9",
+}
+
 
 def fetch_group(group_name: str, timeout: int = None) -> list[dict]:
     """
     Fetch GP data for a satellite group from CelesTrak JSON API.
 
     Handles two query types:
-      - GROUP=xxx for named groups (stations, active, etc.)
+      - GROUP=xxx for named groups (stations, visual, etc.)
       - INTDES=xxx for international designator searches (e.g., 1982-092)
     """
     timeout = timeout or Config.CELESTRAK_TIMEOUT
@@ -39,7 +45,7 @@ def fetch_group(group_name: str, timeout: int = None) -> list[dict]:
     logger.info(f"  URL: {url}")
 
     try:
-        response = requests.get(url, timeout=timeout)
+        response = requests.get(url, headers=HTTP_HEADERS, timeout=timeout)
         response.raise_for_status()
 
         # CelesTrak returns empty string or error HTML for no results
@@ -62,7 +68,7 @@ def fetch_group(group_name: str, timeout: int = None) -> list[dict]:
             return []
 
     except requests.exceptions.Timeout:
-        logger.error(f"  → Timeout fetching '{group_name}'.")
+        logger.error(f"  → Timeout fetching '{group_name}' from CelesTrak.")
         return []
     except requests.exceptions.HTTPError as e:
         logger.error(f"  → HTTP error for '{group_name}': {e}")
@@ -318,6 +324,33 @@ def _safe_float(value) -> float | None:
         return None
 
 
+def seed_catalog_if_empty() -> int:
+    """
+    If the database has no satellites, populate it from the bundled seed dataset.
+    Ensures zero downtime and complete data availability even when CelesTrak is unreachable.
+    """
+    if Satellite.query.count() > 0:
+        return 0
+
+    logger.info("Catalog is empty. Populating with bundled seed orbital dataset...")
+    try:
+        from .seed_data import get_seed_satellites
+        seeds = get_seed_satellites()
+        count = 0
+        for data in seeds:
+            sat = Satellite(**data)
+            db.session.add(sat)
+            count += 1
+        db.session.commit()
+        logger.info(f"Successfully seeded catalog with {count} orbital objects.")
+        _last_fetch_time["catalog"] = datetime.now(timezone.utc)
+        return count
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Failed to seed catalog: {e}")
+        return 0
+
+
 def sync_catalog(groups: list[str] = None) -> dict:
     """
     Fetch GP data for all configured groups and upsert into the database.
@@ -325,6 +358,9 @@ def sync_catalog(groups: list[str] = None) -> dict:
     Returns:
         Summary dict with counts: {group_name: count, ...}
     """
+    # Ensure baseline data is present immediately so app never renders empty
+    seed_catalog_if_empty()
+
     groups = groups or Config.CELESTRAK_GROUPS
     summary = {}
     total_upserted = 0
@@ -353,7 +389,8 @@ def sync_catalog(groups: list[str] = None) -> dict:
 
         try:
             db.session.commit()
-            logger.info(f"  → Upserted {count} satellites for group '{group}'.")
+            if count > 0:
+                logger.info(f"  → Upserted {count} satellites for group '{group}'.")
         except Exception as e:
             db.session.rollback()
             logger.error(f"  → DB error for group '{group}': {e}")
@@ -365,8 +402,13 @@ def sync_catalog(groups: list[str] = None) -> dict:
         # Small delay between group fetches to be polite to CelesTrak
         time.sleep(1)
 
-    _last_fetch_time["catalog"] = datetime.now(timezone.utc)
-    logger.info(f"Catalog sync complete. Total: {total_upserted} objects across {len(groups)} groups.")
+    if total_upserted > 0:
+        _last_fetch_time["catalog"] = datetime.now(timezone.utc)
+        logger.info(f"Catalog sync complete. Total: {total_upserted} objects across {len(groups)} groups.")
+    else:
+        logger.warning("CelesTrak sync yielded 0 live objects. Preserving existing/seed catalog.")
+        seed_catalog_if_empty()
+
     return summary
 
 

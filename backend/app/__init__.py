@@ -31,6 +31,8 @@ def create_app(config_class=Config):
     with app.app_context():
         db.create_all()
         logger.info("Database tables created/verified.")
+        from .services.celestrak import seed_catalog_if_empty
+        seed_catalog_if_empty()
 
     # Register blueprints
     from .routes.satellites import satellites_bp

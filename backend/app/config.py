@@ -21,11 +21,11 @@ class Config:
     # CelesTrak
     CELESTRAK_BASE_URL = "https://celestrak.org/NORAD/elements/gp.php"
     CELESTRAK_GROUPS = [
-        "stations",       # ISS, Tiangong, etc.
-        "active",         # Active satellites (large set)
+        "stations",       # ISS, Tiangong, CSS
+        "visual",         # 100 brightest satellites & debris
         "1982-092",       # Cosmos 1408 debris cloud
     ]
-    CELESTRAK_TIMEOUT = 30  # seconds
+    CELESTRAK_TIMEOUT = 12  # seconds (fail fast and use fallback)
 
     # Propagation
     PROPAGATION_HORIZON_HOURS = 24

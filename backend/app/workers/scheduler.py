@@ -79,14 +79,19 @@ def _job_initial_load(app):
     with app.app_context():
         logger.info("=== INITIAL DATA LOAD ===")
 
-        # 1. Sync catalog
+        # 1. Sync catalog (or use seed catalog)
         try:
-            from ..services.celestrak import sync_catalog
+            from ..services.celestrak import sync_catalog, seed_catalog_if_empty
+            seed_catalog_if_empty()
             summary = sync_catalog()
             logger.info(f"Initial catalog sync: {summary}")
         except Exception as e:
-            logger.error(f"Initial catalog sync failed: {e}")
-            return
+            logger.warning(f"Initial catalog sync failed: {e}. Using bundled seed data.")
+            try:
+                from ..services.celestrak import seed_catalog_if_empty
+                seed_catalog_if_empty()
+            except Exception as se:
+                logger.error(f"Fallback seeding failed: {se}")
 
         # 2. Train ML model
         try:
