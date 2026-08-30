@@ -32,7 +32,15 @@ def create_app(config_class=Config):
         db.create_all()
         logger.info("Database tables created/verified.")
         from .services.celestrak import seed_catalog_if_empty
-        seed_catalog_if_empty()
+        seeded_count = seed_catalog_if_empty()
+        if seeded_count > 0:
+            try:
+                from .services.risk_scorer import train_risk_model
+                train_risk_model()
+                from .services.conjunction import screen_conjunctions
+                screen_conjunctions()
+            except Exception as e:
+                logger.warning(f"Initial boot screening warning: {e}")
 
     # Register blueprints
     from .routes.satellites import satellites_bp
