@@ -1,7 +1,7 @@
 ﻿/**
  * Real-time alert panel for high-risk conjunction events.
  */
-import { AlertTriangle, ArrowRight, MapPin } from 'lucide-react';
+import { AlertTriangle, ArrowRight } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
 import { formatCountdown, getRiskLevel } from '../../types';
 
@@ -14,11 +14,17 @@ export default function AlertPanel() {
 
   const handleAlertClick = (alert) => {
     if (selectedConjId === alert.id) {
-      selectConjunction(null);
-      selectSatellite(null);
+      if (selectedSatId !== null) {
+        // If an individual satellite was focused, locate back to the conjunction event location!
+        selectSatellite(null);
+      } else {
+        // Toggle off
+        selectConjunction(null);
+      }
     } else {
+      // Point directly to conjunction event location
       selectConjunction(alert.id);
-      selectSatellite(alert.object1_norad_id);
+      selectSatellite(null);
     }
   };
 
@@ -62,6 +68,7 @@ export default function AlertPanel() {
                   background: isSelected ? 'rgba(0, 212, 255, 0.08)' : undefined,
                   transition: 'all 0.2s ease',
                 }}
+                title={isSelected && selectedSatId ? 'Click to re-locate to conjunction event' : 'Click to inspect conjunction event'}
               >
                 <div className="alert-item__header">
                   <span className="alert-item__title">⚠ Risk Score: {alert.risk_score}</span>
@@ -74,12 +81,12 @@ export default function AlertPanel() {
                       color: selectedSatId === alert.object1_norad_id ? 'var(--accent-cyan)' : '#e8edf5',
                       fontWeight: 700,
                       cursor: 'pointer',
-                      padding: '1px 4px',
+                      padding: '1px 5px',
                       borderRadius: '3px',
-                      background: selectedSatId === alert.object1_norad_id ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.04)',
-                      border: selectedSatId === alert.object1_norad_id ? '1px solid var(--accent-cyan)' : '1px solid transparent',
+                      background: selectedSatId === alert.object1_norad_id ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.05)',
+                      border: selectedSatId === alert.object1_norad_id ? '1px solid var(--accent-cyan)' : '1px solid rgba(255,255,255,0.1)',
                     }}
-                    title="Click to zoom Object 1 on globe"
+                    title="Click to zoom directly to Object 1"
                   >
                     {alert.object1_name || `#${alert.object1_norad_id}`}
                   </span>
@@ -90,12 +97,12 @@ export default function AlertPanel() {
                       color: selectedSatId === alert.object2_norad_id ? 'var(--accent-gold)' : '#e8edf5',
                       fontWeight: 700,
                       cursor: 'pointer',
-                      padding: '1px 4px',
+                      padding: '1px 5px',
                       borderRadius: '3px',
-                      background: selectedSatId === alert.object2_norad_id ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.04)',
-                      border: selectedSatId === alert.object2_norad_id ? '1px solid var(--accent-gold)' : '1px solid transparent',
+                      background: selectedSatId === alert.object2_norad_id ? 'rgba(251,191,36,0.2)' : 'rgba(255,255,255,0.05)',
+                      border: selectedSatId === alert.object2_norad_id ? '1px solid var(--accent-gold)' : '1px solid rgba(255,255,255,0.1)',
                     }}
-                    title="Click to zoom Object 2 on globe"
+                    title="Click to zoom directly to Object 2"
                   >
                     {alert.object2_name || `#${alert.object2_norad_id}`}
                   </span>

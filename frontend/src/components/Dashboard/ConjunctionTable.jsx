@@ -35,11 +35,17 @@ export default function ConjunctionTable() {
 
   const handleRowClick = (conj) => {
     if (selectedConjunctionId === conj.id) {
-      selectConjunction(null);
-      selectSatellite(null);
+      if (selectedSatelliteId !== null) {
+        // Re-locate back to the conjunction event!
+        selectSatellite(null);
+      } else {
+        // Toggle off
+        selectConjunction(null);
+      }
     } else {
+      // Point to conjunction event location
       selectConjunction(conj.id);
-      selectSatellite(conj.object1_norad_id);
+      selectSatellite(null);
     }
   };
 
@@ -97,8 +103,9 @@ export default function ConjunctionTable() {
                         fontWeight: 700,
                         color: selectedSatelliteId === conj.object1_norad_id ? 'var(--accent-cyan)' : '#e8edf5',
                         cursor: 'pointer',
+                        display: 'inline-block',
                       }}
-                      title="Click to zoom Object 1"
+                      title="Click to zoom to Object 1"
                     >
                       {conj.object1_name || `#${conj.object1_norad_id}`}
                     </div>
@@ -109,7 +116,7 @@ export default function ConjunctionTable() {
                         color: selectedSatelliteId === conj.object2_norad_id ? 'var(--accent-gold)' : 'var(--text-muted)',
                         cursor: 'pointer',
                       }}
-                      title="Click to zoom Object 2"
+                      title="Click to zoom to Object 2"
                     >
                       ↔ {conj.object2_name || `#${conj.object2_norad_id}`}
                     </div>

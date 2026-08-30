@@ -1,22 +1,11 @@
 ﻿/**
  * 3D Globe visualization using react-globe.gl.
- *
- * RULES:
- * 1. By default, ONLY satellites involved in conjunction events are shown as dots.
- * 2. When a non-conjunction satellite is clicked in the sidebar, a temporary
- *    cyan marker appears on the globe at its location. Clicking it again removes it.
- * 3. Conjunction dots are larger (0.6) and prominent; temporary locate markers are smaller (0.3).
- * 4. Earth auto-rotation is disabled during playback so satellite orbital motion is clear and steady.
- * 5. No 3D mesh objects — only clean, high-performance dots and trajectory arcs.
  */
 
 import { useRef, useEffect, useCallback, useMemo } from 'react';
 import Globe from 'react-globe.gl';
 import { useAppStore } from '../../store/appStore';
 import { getObjectTypeColor, getRiskColor } from '../../types';
-
-const CONJUNCTION_DOT_SIZE = 0.6;  // Prominent size for high-risk conjunction objects
-const TEMPORARY_DOT_SIZE   = 0.3;  // Smaller size for temporarily located object
 
 const pointLabelFn = (pt) => `
   <div style="background:rgba(10,14,26,0.95);backdrop-filter:blur(8px);
@@ -27,7 +16,6 @@ const pointLabelFn = (pt) => `
     <div style="font-size:10px;color:#8899b4;margin-top:2px;font-family:monospace;">
       NORAD ${pt.norad_id} · ${pt.object_type}
     </div>
-    ${pt.isTemporary ? '<div style="font-size:10px;color:#00d4ff;margin-top:3px;">📍 Temporary Marker — click again to dismiss</div>' : ''}
   </div>`;
 
 const arcLabelFn = (arc) => `
@@ -46,120 +34,82 @@ export default function GlobeView() {
   const globeRef     = useRef(null);
   const containerRef = useRef(null);
 
-  const positions         = useAppStore((s) => s.positions);
-  const conjunctions      = useAppStore((s) => s.conjunctions);
-  const selectedSatId     = useAppStore((s) => s.selectedSatelliteId);
-  const selectedConjId    = useAppStore((s) => s.selectedConjunctionId);
-  const selectSatellite   = useAppStore((s) => s.selectSatellite);
-  const selectConjunction = useAppStore((s) => s.selectConjunction);
+  const positions             = useAppStore((s) => s.positions);
+  const conjunctions          = useAppStore((s) => s.conjunctions);
+  const selectedSatelliteId   = useAppStore((s) => s.selectedSatelliteId);
+  const selectedConjunctionId = useAppStore((s) => s.selectedConjunctionId);
+  const selectSatellite       = useAppStore((s) => s.selectSatellite);
+  const selectConjunction     = useAppStore((s) => s.selectConjunction);
+  const activeFilters         = useAppStore((s) => s.activeFilters);
 
-  // Build a set of NORAD IDs that are part of conjunction events
-  const conjunctionNoradIds = useMemo(() => {
-    const ids = new Set();
-    conjunctions.forEach((c) => {
-      if (c.object1_norad_id) ids.add(c.object1_norad_id);
-      if (c.object2_norad_id) ids.add(c.object2_norad_id);
+  // Filter positions by active filters
+  const filteredPositions = useMemo(() => {
+    return positions.filter((p) => {
+      const type = p.object_type?.toUpperCase();
+      if (!activeFilters.payload && (type === 'PAYLOAD' || type === 'UNKNOWN' || type === 'TBA' || !type)) return false;
+      if (!activeFilters.debris && type === 'DEBRIS') return false;
+      if (!activeFilters.rocketBody && type === 'ROCKET BODY') return false;
+      return true;
     });
-    return ids;
-  }, [conjunctions]);
+  }, [positions, activeFilters]);
 
-  // Conjunction dots — ONLY objects from the conjunction events list
-  const conjunctionPoints = useMemo(() => {
-    const posMap = new Map();
-    positions.forEach((p) => { if (p && p.norad_id) posMap.set(p.norad_id, p); });
-
-    const satMap = new Map();
-
+  // Points on globe: conjunction objects in real-time orbits + selected satellite
+  const globePoints = useMemo(() => {
+    const conjunctionNoradIds = new Set();
     conjunctions.forEach((c) => {
-      // Object 1
-      if (c.object1_norad_id && !satMap.has(c.object1_norad_id)) {
-        const pos = posMap.get(c.object1_norad_id);
-        const lat = pos ? pos.latitude : c.obj1_lat;
-        const lng = pos ? pos.longitude : c.obj1_lon;
-        const altKm = pos ? pos.altitude_km : (c.obj1_alt_km || 400);
-        if (lat != null && lng != null) {
-          satMap.set(c.object1_norad_id, {
-            norad_id: c.object1_norad_id,
-            name: c.object1_name || `NORAD ${c.object1_norad_id}`,
-            object_type: pos?.object_type || 'PAYLOAD',
-            lat, lng,
-            alt: Math.min((altKm || 400) / 6371 / 4, 0.12),
-            color: getObjectTypeColor(pos?.object_type || 'PAYLOAD'),
-            size: CONJUNCTION_DOT_SIZE,
-            isTemporary: false,
-          });
-        }
-      }
-      // Object 2
-      if (c.object2_norad_id && !satMap.has(c.object2_norad_id)) {
-        const pos = posMap.get(c.object2_norad_id);
-        const lat = pos ? pos.latitude : c.obj2_lat;
-        const lng = pos ? pos.longitude : c.obj2_lon;
-        const altKm = pos ? pos.altitude_km : (c.obj2_alt_km || 400);
-        if (lat != null && lng != null) {
-          satMap.set(c.object2_norad_id, {
-            norad_id: c.object2_norad_id,
-            name: c.object2_name || `NORAD ${c.object2_norad_id}`,
-            object_type: pos?.object_type || 'DEBRIS',
-            lat, lng,
-            alt: Math.min((altKm || 400) / 6371 / 4, 0.12),
-            color: getObjectTypeColor(pos?.object_type || 'DEBRIS'),
-            size: CONJUNCTION_DOT_SIZE,
-            isTemporary: false,
-          });
-        }
-      }
+      if (c.object1_norad_id) conjunctionNoradIds.add(c.object1_norad_id);
+      if (c.object2_norad_id) conjunctionNoradIds.add(c.object2_norad_id);
     });
 
-    return Array.from(satMap.values());
-  }, [conjunctions, positions]);
+    const posMap = {};
+    for (const p of positions) {
+      if (p && p.norad_id) {
+        posMap[p.norad_id] = p;
+      }
+    }
 
-  // Temporary marker for a selected non-conjunction satellite
-  const tempMarker = useMemo(() => {
-    if (!selectedSatId) return null;
-    if (conjunctionNoradIds.has(selectedSatId)) return null;
+    return filteredPositions
+      .filter((sat) => conjunctionNoradIds.has(sat.norad_id) || sat.norad_id === selectedSatelliteId)
+      .map((sat) => {
+        const pos = posMap[sat.norad_id];
+        if (!pos) return null;
+        const isSelected = selectedSatelliteId === pos.norad_id;
+        return {
+          lat: pos.latitude,
+          lng: pos.longitude,
+          alt: Math.min(pos.altitude_km / 6371 / 4, 0.15),
+          name: pos.name,
+          norad_id: pos.norad_id,
+          object_type: pos.object_type,
+          color: isSelected ? '#00d4ff' : getObjectTypeColor(pos.object_type),
+          size: isSelected ? 0.7 : 0.4,
+        };
+      })
+      .filter(Boolean);
+  }, [filteredPositions, positions, selectedSatelliteId, conjunctions]);
 
-    const pos = positions.find((p) => p.norad_id === selectedSatId);
-    if (!pos || pos.latitude == null || pos.longitude == null) return null;
-
-    return {
-      norad_id: pos.norad_id,
-      name: pos.name || `NORAD ${pos.norad_id}`,
-      object_type: pos.object_type || 'UNKNOWN',
-      lat: pos.latitude,
-      lng: pos.longitude,
-      alt: Math.min((pos.altitude_km || 400) / 6371 / 4, 0.12),
-      color: '#00d4ff',
-      size: TEMPORARY_DOT_SIZE,
-      isTemporary: true,
-    };
-  }, [selectedSatId, positions, conjunctionNoradIds]);
-
-  // Combined points: conjunction dots + optional temp marker
-  const allPoints = useMemo(() => {
-    if (tempMarker) return [...conjunctionPoints, tempMarker];
-    return conjunctionPoints;
-  }, [conjunctionPoints, tempMarker]);
-
-  // Conjunction arcs
+  // Conjunction arcs connecting objects
   const conjunctionArcs = useMemo(() => {
     return conjunctions
       .filter((c) => c.obj1_lat != null && c.obj1_lon != null && c.obj2_lat != null && c.obj2_lon != null)
       .map((c) => {
-        const isSelected = selectedConjId === c.id;
+        const isSelected = selectedConjunctionId === c.id;
         const color = getRiskColor(c.risk_score);
         return {
           id: c.id,
           object1_norad_id: c.object1_norad_id,
-          startLat: c.obj1_lat,  startLng: c.obj1_lon,
-          endLat:   c.obj2_lat,  endLng:   c.obj2_lon,
-          color: selectedConjId && !isSelected ? color + '30' : color,
+          object2_norad_id: c.object2_norad_id,
+          startLat: c.obj1_lat,
+          startLng: c.obj1_lon,
+          endLat:   c.obj2_lat,
+          endLng:   c.obj2_lon,
+          color: selectedConjunctionId && !isSelected ? color + '30' : color,
           risk_score: c.risk_score,
           label: `${c.object1_name || c.object1_norad_id} ↔ ${c.object2_name || c.object2_norad_id}`,
           isSelected,
         };
       });
-  }, [conjunctions, selectedConjId]);
+  }, [conjunctions, selectedConjunctionId]);
 
   // Initial globe setup
   useEffect(() => {
@@ -167,17 +117,24 @@ export default function GlobeView() {
     globeRef.current.pointOfView({ lat: 20, lng: 77, altitude: 2.2 }, 0);
     const controls = globeRef.current.controls();
     if (controls) {
-      controls.autoRotate      = false;
-      controls.enableDamping   = true;
-      controls.dampingFactor   = 0.1;
+      controls.autoRotate    = false;
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.1;
     }
   }, []);
 
-  // Zoom to selection
+  // Zoom to selection:
+  // 1. If an individual satellite is selected, move globe camera to that satellite's position.
+  // 2. If a conjunction is selected (and no individual satellite is focused), move globe camera to the conjunction event location.
   useEffect(() => {
     if (!globeRef.current) return;
-    if (selectedConjId) {
-      const conj = conjunctions.find((c) => c.id === selectedConjId);
+    if (selectedSatelliteId) {
+      const sat = positions.find((p) => p.norad_id === selectedSatelliteId);
+      if (sat && sat.latitude != null && sat.longitude != null) {
+        globeRef.current.pointOfView({ lat: sat.latitude, lng: sat.longitude, altitude: 1.2 }, 1000);
+      }
+    } else if (selectedConjunctionId) {
+      const conj = conjunctions.find((c) => c.id === selectedConjunctionId);
       if (conj && conj.obj1_lat != null && conj.obj2_lat != null) {
         const lat = (conj.obj1_lat + conj.obj2_lat) / 2;
         let lon1 = conj.obj1_lon, lon2 = conj.obj2_lon;
@@ -187,40 +144,31 @@ export default function GlobeView() {
         }
         let lon = (lon1 + lon2) / 2;
         if (lon > 180) lon -= 360;
-        globeRef.current.pointOfView({ lat, lng: lon, altitude: 0.85 }, 1000);
-      }
-    } else if (selectedSatId) {
-      const pos = positions.find((p) => p.norad_id === selectedSatId);
-      if (pos && pos.latitude != null && pos.longitude != null) {
-        globeRef.current.pointOfView({ lat: pos.latitude, lng: pos.longitude, altitude: 0.85 }, 1000);
+        globeRef.current.pointOfView({ lat, lng: lon, altitude: 1.2 }, 1000);
       }
     }
-  }, [selectedConjId, selectedSatId, conjunctions, positions]);
+  }, [selectedConjunctionId, selectedSatelliteId, conjunctions, positions]);
 
   const handlePointClick = useCallback((point) => {
-    // If clicking a temporary marker, deselect it
-    if (point.isTemporary) {
+    if (selectedSatelliteId === point.norad_id) {
       selectSatellite(null);
-      return;
-    }
-    // Toggle selection on conjunction dots
-    if (selectedSatId === point.norad_id) {
-      selectSatellite(null);
-      selectConjunction(null);
     } else {
       selectSatellite(point.norad_id);
     }
-  }, [selectedSatId, selectSatellite, selectConjunction]);
+  }, [selectSatellite, selectedSatelliteId]);
 
   const handleArcClick = useCallback((arc) => {
-    if (selectedConjId === arc.id) {
-      selectConjunction(null);
-      selectSatellite(null);
+    if (selectedConjunctionId === arc.id) {
+      if (selectedSatelliteId !== null) {
+        selectSatellite(null);
+      } else {
+        selectConjunction(null);
+      }
     } else {
       selectConjunction(arc.id);
-      selectSatellite(arc.object1_norad_id);
+      selectSatellite(null); // point to conjunction event location
     }
-  }, [selectedConjId, selectConjunction, selectSatellite]);
+  }, [selectedConjunctionId, selectedSatelliteId, selectConjunction, selectSatellite]);
 
   return (
     <div ref={containerRef} className="app-globe" id="globe-container" style={{ width: '100%', height: '100%' }}>
@@ -231,19 +179,16 @@ export default function GlobeView() {
         backgroundImageUrl="https://unpkg.com/three-globe/example/img/night-sky.png"
         atmosphereColor="#4db8ff"
         atmosphereAltitude={0.18}
-        // Dots: conjunction objects + optional temporary selected marker
-        pointsData={allPoints}
+        // Points
+        pointsData={globePoints}
         pointLat="lat"
         pointLng="lng"
         pointAltitude="alt"
         pointColor="color"
         pointRadius="size"
-        pointsMerge={false}
         onPointClick={handlePointClick}
         pointLabel={pointLabelFn}
-        // Explicitly clear any leftover 3D object layer
-        objectsData={[]}
-        // Conjunction arcs
+        // Arcs
         arcsData={conjunctionArcs}
         arcStartLat="startLat"
         arcStartLng="startLng"
@@ -253,7 +198,7 @@ export default function GlobeView() {
         arcDashLength={0.4}
         arcDashGap={0.2}
         arcDashAnimateTime={1500}
-        arcStroke={0.8}
+        arcStroke={0.6}
         onArcClick={handleArcClick}
         arcLabel={arcLabelFn}
         animateIn={true}
