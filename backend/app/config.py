@@ -48,4 +48,4 @@ class Config:
     SCHEDULER_CACHE_CLEANUP_HOURS = 24
 
     # CORS
-    CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "http://localhost:5173").split(",")
+    CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "*").split(",")
