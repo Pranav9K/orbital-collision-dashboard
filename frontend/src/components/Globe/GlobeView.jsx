@@ -209,10 +209,10 @@ export default function GlobeView() {
         pathPointLng={(p) => p[1]}
         pathPointAlt={(p) => p[2]}
         pathColor="color"
-        pathStroke={0.3}
-        pathDashLength={0.2}
-        pathDashGap={0.05}
-        pathDashAnimateTime={4000}
+        pathStroke={1}
+        pathDashLength={0.4}
+        pathDashGap={0.02}
+        pathDashAnimateTime={3000}
         animateIn={true}
       />
     </div>

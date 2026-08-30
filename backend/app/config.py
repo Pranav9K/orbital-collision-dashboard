@@ -20,6 +20,10 @@ class Config:
         db_url or f"sqlite:///{os.path.join(INSTANCE_DIR, 'orbital.db')}"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_pre_ping": True,
+        "pool_recycle": 300,
+    }
 
     # CelesTrak
     CELESTRAK_BASE_URL = "https://celestrak.org/NORAD/elements/gp.php"
