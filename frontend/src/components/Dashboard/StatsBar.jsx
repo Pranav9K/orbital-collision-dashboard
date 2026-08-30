@@ -1,17 +1,17 @@
-﻿/**
+/**
  * Top stats bar showing key dashboard metrics + risk classification info button.
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Shield, Satellite, AlertTriangle, Clock, Info, X } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
-import { formatCountdown } from '../../types';
+import { formatCountdown, isHighRisk } from '../../types';
 
 const RISK_LEVELS = [
-  { label: 'Critical', range: '75 – 100', color: '#dc2626', desc: 'Imminent collision threat. Miss distance < 1 km, high-velocity approach. Immediate operator action required.' },
-  { label: 'High',     range: '50 – 74',  color: '#ef4444', desc: 'Significant risk. Miss distance 1–5 km. Evasive maneuver strongly recommended before TCA.' },
-  { label: 'Medium',   range: '25 – 49',  color: '#f59e0b', desc: 'Elevated risk. Miss distance 5–15 km. Monitor closely; maneuver may be required as TCA approaches.' },
-  { label: 'Low',      range: '0 – 24',   color: '#10b981', desc: 'Acceptable risk. Miss distance > 15 km. Continue nominal operations with standard monitoring.' },
+  { label: 'Critical', range: '80 – 100', color: '#dc2626', desc: 'Imminent collision threat. Close approach with high kinetic energy. Immediate operator action required.' },
+  { label: 'High',     range: '60 – 79',  color: '#ea580c', desc: 'Significant risk. Evasive maneuver strongly recommended before TCA.' },
+  { label: 'Medium',   range: '35 – 59',  color: '#fbbf24', desc: 'Elevated risk. Monitor closely; maneuver may be required as TCA approaches.' },
+  { label: 'Low',      range: '0 – 34',   color: '#fcd34d', desc: 'Acceptable risk. Continue nominal operations with standard monitoring.' },
 ];
 
 export default function StatsBar() {
@@ -23,7 +23,13 @@ export default function StatsBar() {
 
   const totalObjects      = stats?.total ?? 0;
   const activeConjunctions = conjunctions.length;
-  const highRiskCount     = alerts.length;
+  const highRiskCount     = useMemo(() => {
+    const highSet = new Set();
+    alerts.forEach((a) => { if (a && a.id) highSet.add(a.id); });
+    conjunctions.forEach((c) => { if (c && c.id && isHighRisk(c.risk_score)) highSet.add(c.id); });
+    return highSet.size;
+  }, [alerts, conjunctions]);
+
   const nextTCA           = conjunctions.length > 0
     ? conjunctions
         .filter((c) => new Date(c.tca) > new Date())

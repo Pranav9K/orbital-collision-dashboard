@@ -54,40 +54,44 @@ export default function GlobeView() {
     });
   }, [positions, activeFilters]);
 
-  // Points on globe: conjunction objects in real-time orbits + selected satellite
+  // Points on globe: ONLY show marker when an individual satellite is selected for inspection
   const globePoints = useMemo(() => {
-    const conjunctionNoradIds = new Set();
-    conjunctions.forEach((c) => {
-      if (c.object1_norad_id) conjunctionNoradIds.add(c.object1_norad_id);
-      if (c.object2_norad_id) conjunctionNoradIds.add(c.object2_norad_id);
-    });
+    if (!selectedSatelliteId) return [];
 
-    const posMap = {};
-    for (const p of positions) {
-      if (p && p.norad_id) {
-        posMap[p.norad_id] = p;
-      }
-    }
+    const pos = positions.find((p) => p && p.norad_id === selectedSatelliteId);
+    if (!pos || pos.latitude == null || pos.longitude == null) return [];
 
-    return filteredPositions
-      .filter((sat) => conjunctionNoradIds.has(sat.norad_id) || sat.norad_id === selectedSatelliteId)
-      .map((sat) => {
-        const pos = posMap[sat.norad_id];
-        if (!pos) return null;
-        const isSelected = selectedSatelliteId === pos.norad_id;
+    return [{
+      lat: pos.latitude,
+      lng: pos.longitude,
+      alt: Math.min((pos.altitude_km || 400) / 6371 / 4, 0.15),
+      name: pos.name,
+      norad_id: pos.norad_id,
+      object_type: pos.object_type,
+      color: '#00d4ff',
+      size: 0.8,
+    }];
+  }, [positions, selectedSatelliteId]);
+
+  // Conjunction hazard rings on the globe at TCA location
+  const conjunctionRings = useMemo(() => {
+    return conjunctions
+      .filter((c) => c.obj1_lat != null && c.obj1_lon != null)
+      .map((c) => {
+        const isSelected = selectedConjunctionId === c.id;
+        const color = getRiskColor(c.risk_score);
         return {
-          lat: pos.latitude,
-          lng: pos.longitude,
-          alt: Math.min(pos.altitude_km / 6371 / 4, 0.15),
-          name: pos.name,
-          norad_id: pos.norad_id,
-          object_type: pos.object_type,
-          color: isSelected ? '#00d4ff' : getObjectTypeColor(pos.object_type),
-          size: isSelected ? 0.7 : 0.4,
+          id: c.id,
+          lat: c.obj1_lat,
+          lng: c.obj1_lon,
+          alt: Math.min((c.obj1_alt_km || 400) / 6371 / 4, 0.15),
+          color: isSelected ? '#ff3b30' : color,
+          maxRadius: isSelected ? 4.5 : 2.5,
+          propagationSpeed: isSelected ? 3 : 1.5,
+          repeatPeriod: isSelected ? 800 : 1600,
         };
-      })
-      .filter(Boolean);
-  }, [filteredPositions, positions, selectedSatelliteId, conjunctions]);
+      });
+  }, [conjunctions, selectedConjunctionId]);
 
   // Conjunction arcs connecting objects
   const conjunctionArcs = useMemo(() => {
@@ -104,7 +108,7 @@ export default function GlobeView() {
           startLng: c.obj1_lon,
           endLat:   c.obj2_lat,
           endLng:   c.obj2_lon,
-          color: selectedConjunctionId && !isSelected ? color + '30' : color,
+          color: selectedConjunctionId && !isSelected ? color + '25' : color,
           risk_score: c.risk_score,
           label: `${c.object1_name || c.object1_norad_id} ↔ ${c.object2_name || c.object2_norad_id}`,
           isSelected,
@@ -180,7 +184,7 @@ export default function GlobeView() {
         backgroundImageUrl="https://unpkg.com/three-globe/example/img/night-sky.png"
         atmosphereColor="#4db8ff"
         atmosphereAltitude={0.18}
-        // Points
+        // Focused Satellite Points (only shown when focused)
         pointsData={globePoints}
         pointLat="lat"
         pointLng="lng"
@@ -189,30 +193,40 @@ export default function GlobeView() {
         pointRadius="size"
         onPointClick={handlePointClick}
         pointLabel={pointLabelFn}
-        // Arcs
+        // Conjunction Hazard Rings
+        ringsData={conjunctionRings}
+        ringLat="lat"
+        ringLng="lng"
+        ringAltitude="alt"
+        ringColor="color"
+        ringMaxRadius="maxRadius"
+        ringPropagationSpeed="propagationSpeed"
+        ringRepeatPeriod="repeatPeriod"
+        // High-Visibility Conjunction Arcs
         arcsData={conjunctionArcs}
         arcStartLat="startLat"
         arcStartLng="startLng"
         arcEndLat="endLat"
         arcEndLng="endLng"
         arcColor="color"
+        arcAltitude={0.22}
         arcDashLength={0.4}
-        arcDashGap={0.2}
-        arcDashAnimateTime={1500}
-        arcStroke={0.6}
+        arcDashGap={0.12}
+        arcDashAnimateTime={1400}
+        arcStroke={2.0}
         onArcClick={handleArcClick}
         arcLabel={arcLabelFn}
-        // Paths
+        // High-Visibility Animated Orbit Trajectories
         pathsData={activeOrbits}
         pathPoints="path"
         pathPointLat={(p) => p[0]}
         pathPointLng={(p) => p[1]}
         pathPointAlt={(p) => p[2]}
-        pathColor="color"
-        pathStroke={1}
-        pathDashLength={0.4}
-        pathDashGap={0.02}
-        pathDashAnimateTime={3000}
+        pathColor={(d) => d.color || '#00d4ff'}
+        pathStroke={3.0}
+        pathDashLength={0.6}
+        pathDashGap={0.03}
+        pathDashAnimateTime={2500}
         animateIn={true}
       />
     </div>

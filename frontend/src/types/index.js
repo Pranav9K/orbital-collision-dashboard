@@ -62,6 +62,10 @@ export function getRiskLevel(score) {
   return 'low';
 }
 
+export function isHighRisk(score) {
+  return score >= 60;
+}
+
 export function getRiskColor(score) {
   const level = getRiskLevel(score);
   switch (level) {

@@ -144,27 +144,29 @@ export const useAppStore = create((set, get) => ({
           const promises = [];
           if (conjunction.object1_norad_id) {
             promises.push(
-              api.fetchOrbitPath(conjunction.object1_norad_id, { step: 60 }).then((res) => ({
+              api.fetchOrbitPath(conjunction.object1_norad_id, { step: 45 }).then((res) => ({
                 norad_id: conjunction.object1_norad_id,
+                name: conjunction.object1_name,
                 path: res.orbit.map((pt) => [
                   pt.latitude,
                   pt.longitude,
                   Math.min(pt.altitude_km / 6371 / 4, 0.15)
                 ]),
-                color: '#ff4d4d' // Risk color / red
+                color: '#00d4ff' // Neon Cyan for Object 1
               }))
             );
           }
           if (conjunction.object2_norad_id) {
             promises.push(
-              api.fetchOrbitPath(conjunction.object2_norad_id, { step: 60 }).then((res) => ({
+              api.fetchOrbitPath(conjunction.object2_norad_id, { step: 45 }).then((res) => ({
                 norad_id: conjunction.object2_norad_id,
+                name: conjunction.object2_name,
                 path: res.orbit.map((pt) => [
                   pt.latitude,
                   pt.longitude,
                   Math.min(pt.altitude_km / 6371 / 4, 0.15)
                 ]),
-                color: '#ffa64d' // Orange
+                color: '#fbbf24' // Vibrant Amber/Gold for Object 2
               }))
             );
           }

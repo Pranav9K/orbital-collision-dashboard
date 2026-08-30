@@ -1,16 +1,29 @@
-﻿/**
+/**
  * Real-time alert panel for high-risk conjunction events.
  */
 import { AlertTriangle, ArrowRight } from 'lucide-react';
+import { useMemo } from 'react';
 import { useAppStore } from '../../store/appStore';
-import { formatCountdown, getRiskLevel } from '../../types';
+import { formatCountdown, getRiskLevel, isHighRisk } from '../../types';
 
 export default function AlertPanel() {
   const alerts            = useAppStore((s) => s.alerts);
+  const conjunctions      = useAppStore((s) => s.conjunctions);
   const selectConjunction = useAppStore((s) => s.selectConjunction);
   const selectSatellite   = useAppStore((s) => s.selectSatellite);
   const selectedConjId    = useAppStore((s) => s.selectedConjunctionId);
   const selectedSatId     = useAppStore((s) => s.selectedSatelliteId);
+
+  const highRiskEvents = useMemo(() => {
+    const map = new Map();
+    alerts.forEach((a) => { if (a && a.id) map.set(a.id, a); });
+    conjunctions.forEach((c) => {
+      if (c && c.id && isHighRisk(c.risk_score)) {
+        map.set(c.id, c);
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => b.risk_score - a.risk_score);
+  }, [alerts, conjunctions]);
 
   const handleAlertClick = (alert) => {
     if (selectedConjId === alert.id) {
@@ -39,22 +52,22 @@ export default function AlertPanel() {
       <div className="section-header">
         <span className="section-header__title">
           <AlertTriangle size={12} style={{ marginRight: 6, color: 'var(--risk-high)' }} />
-          High-Risk Alerts
+          High-Risk Conjunction Events
         </span>
-        {alerts.length > 0 && (
+        {highRiskEvents.length > 0 && (
           <span className="section-header__badge" style={{ background: 'var(--risk-high-bg)', color: 'var(--risk-high)' }}>
-            {alerts.length}
+            {highRiskEvents.length}
           </span>
         )}
       </div>
       <div style={{ padding: 'var(--space-sm)', display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)', maxHeight: 250, overflowY: 'auto' }}>
-        {alerts.length === 0 ? (
+        {highRiskEvents.length === 0 ? (
           <div className="empty-state">
             <div className="empty-state__icon" style={{ color: 'var(--risk-low)' }}>✓</div>
-            <div className="empty-state__text">No high-risk events detected</div>
+            <div className="empty-state__text">No high-risk conjunction events detected</div>
           </div>
         ) : (
-          alerts.map((alert) => {
+          highRiskEvents.map((alert) => {
             const level = getRiskLevel(alert.risk_score);
             const isSelected = selectedConjId === alert.id;
             return (

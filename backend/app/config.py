@@ -45,7 +45,7 @@ class Config:
     CONJUNCTION_MAX_EVENTS = 500        # cap stored events
 
     # Risk scoring
-    RISK_HIGH_THRESHOLD = 70            # score >= this → high-risk alert
+    RISK_HIGH_THRESHOLD = 60            # score >= this → high-risk alert
     RISK_ML_WEIGHT = 0.6                # weight for ML probability in hybrid score
     RISK_DETERMINISTIC_WEIGHT = 0.4     # weight for deterministic component
 

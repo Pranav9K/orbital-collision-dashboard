@@ -1,11 +1,11 @@
-﻿/**
+/**
  * Sortable conjunction events table with risk badges.
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ArrowUpDown } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
-import { getRiskLevel, formatCountdown } from '../../types';
+import { getRiskLevel, formatCountdown, isHighRisk } from '../../types';
 
 export default function ConjunctionTable() {
   const conjunctions          = useAppStore((s) => s.conjunctions);
@@ -18,15 +18,22 @@ export default function ConjunctionTable() {
   const sortAsc   = useAppStore((s) => s.conjSortAsc);
   const setSort   = useAppStore((s) => s.setConjSort);
 
-  const sorted = [...conjunctions].sort((a, b) => {
-    let cmp = 0;
-    switch (sortField) {
-      case 'risk_score':       cmp = a.risk_score - b.risk_score; break;
-      case 'miss_distance_km': cmp = a.miss_distance_km - b.miss_distance_km; break;
-      case 'tca':              cmp = new Date(a.tca).getTime() - new Date(b.tca).getTime(); break;
-    }
-    return sortAsc ? cmp : -cmp;
-  });
+  // Filter out high-risk events as they are classified in the High-Risk panel above
+  const standardConjunctions = useMemo(() => {
+    return conjunctions.filter((c) => !isHighRisk(c.risk_score));
+  }, [conjunctions]);
+
+  const sorted = useMemo(() => {
+    return [...standardConjunctions].sort((a, b) => {
+      let cmp = 0;
+      switch (sortField) {
+        case 'risk_score':       cmp = a.risk_score - b.risk_score; break;
+        case 'miss_distance_km': cmp = a.miss_distance_km - b.miss_distance_km; break;
+        case 'tca':              cmp = new Date(a.tca).getTime() - new Date(b.tca).getTime(); break;
+      }
+      return sortAsc ? cmp : -cmp;
+    });
+  }, [standardConjunctions, sortField, sortAsc]);
 
   const handleSort = (field) => {
     if (sortField === field) { setSort(field, !sortAsc); }
@@ -55,15 +62,19 @@ export default function ConjunctionTable() {
     selectSatellite(noradId);
   };
 
-  if (conjunctions.length === 0) {
+  if (standardConjunctions.length === 0) {
     return (
-      <div className="glass-panel">
+      <div className="glass-panel" id="conjunction-table">
         <div className="section-header">
           <span className="section-header__title">Conjunction Events</span>
           <span className="section-header__badge">0</span>
         </div>
         <div className="empty-state">
-          <div className="empty-state__text">No conjunction events detected</div>
+          <div className="empty-state__text">
+            {conjunctions.length > 0
+              ? 'All active events classified as High Risk above'
+              : 'No conjunction events detected'}
+          </div>
         </div>
       </div>
     );
@@ -73,7 +84,7 @@ export default function ConjunctionTable() {
     <div className="glass-panel" id="conjunction-table">
       <div className="section-header">
         <span className="section-header__title">Conjunction Events</span>
-        <span className="section-header__badge">{conjunctions.length}</span>
+        <span className="section-header__badge">{standardConjunctions.length}</span>
       </div>
       <div style={{ maxHeight: 300, overflowY: 'auto' }}>
         <table className="conjunction-table">
