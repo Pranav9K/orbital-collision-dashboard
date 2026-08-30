@@ -13,6 +13,7 @@ export const useAppStore = create((set, get) => ({
   alerts: [],
   timeline: [],
   stats: null,
+  activeOrbits: [],
   selectedSatelliteId: null,
   selectedConjunctionId: null,
   simulationTime: new Date(),
@@ -117,8 +118,64 @@ export const useAppStore = create((set, get) => ({
     }
   },
 
-  selectSatellite: (id) => set({ selectedSatelliteId: id }),
-  selectConjunction: (id) => set({ selectedConjunctionId: id }),
+  selectSatellite: async (id) => {
+    set({ selectedSatelliteId: id, activeOrbits: [] });
+    if (id) {
+      try {
+        const result = await api.fetchOrbitPath(id, { step: 60 });
+        const path = result.orbit.map((pt) => [
+          pt.latitude,
+          pt.longitude,
+          Math.min(pt.altitude_km / 6371 / 4, 0.15)
+        ]);
+        set({ activeOrbits: [{ norad_id: id, path, color: '#00d4ff' }] });
+      } catch (e) {
+        console.error('Failed to fetch orbit path:', e);
+      }
+    }
+  },
+
+  selectConjunction: async (id) => {
+    set({ selectedConjunctionId: id, activeOrbits: [] });
+    if (id) {
+      const conjunction = get().conjunctions.find((c) => c.id === id);
+      if (conjunction) {
+        try {
+          const promises = [];
+          if (conjunction.object1_norad_id) {
+            promises.push(
+              api.fetchOrbitPath(conjunction.object1_norad_id, { step: 60 }).then((res) => ({
+                norad_id: conjunction.object1_norad_id,
+                path: res.orbit.map((pt) => [
+                  pt.latitude,
+                  pt.longitude,
+                  Math.min(pt.altitude_km / 6371 / 4, 0.15)
+                ]),
+                color: '#ff4d4d' // Risk color / red
+              }))
+            );
+          }
+          if (conjunction.object2_norad_id) {
+            promises.push(
+              api.fetchOrbitPath(conjunction.object2_norad_id, { step: 60 }).then((res) => ({
+                norad_id: conjunction.object2_norad_id,
+                path: res.orbit.map((pt) => [
+                  pt.latitude,
+                  pt.longitude,
+                  Math.min(pt.altitude_km / 6371 / 4, 0.15)
+                ]),
+                color: '#ffa64d' // Orange
+              }))
+            );
+          }
+          const orbits = await Promise.all(promises);
+          set({ activeOrbits: orbits });
+        } catch (e) {
+          console.error('Failed to fetch conjunction orbit paths:', e);
+        }
+      }
+    }
+  },
   setSimulationTime: (time) => set({ simulationTime: time }),
   setPlaying: (playing) => set({ isPlaying: playing }),
   setPlaybackSpeed: (speed) => set({ playbackSpeed: speed }),

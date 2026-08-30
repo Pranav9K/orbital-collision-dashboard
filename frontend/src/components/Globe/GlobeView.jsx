@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 3D Globe visualization using react-globe.gl.
  */
 
@@ -41,6 +41,7 @@ export default function GlobeView() {
   const selectSatellite       = useAppStore((s) => s.selectSatellite);
   const selectConjunction     = useAppStore((s) => s.selectConjunction);
   const activeFilters         = useAppStore((s) => s.activeFilters);
+  const activeOrbits          = useAppStore((s) => s.activeOrbits);
 
   // Filter positions by active filters
   const filteredPositions = useMemo(() => {
@@ -201,6 +202,17 @@ export default function GlobeView() {
         arcStroke={0.6}
         onArcClick={handleArcClick}
         arcLabel={arcLabelFn}
+        // Paths
+        pathsData={activeOrbits}
+        pathPoints="path"
+        pathPointLat={(p) => p[0]}
+        pathPointLng={(p) => p[1]}
+        pathPointAlt={(p) => p[2]}
+        pathColor="color"
+        pathStroke={0.3}
+        pathDashLength={0.2}
+        pathDashGap={0.05}
+        pathDashAnimateTime={4000}
         animateIn={true}
       />
     </div>
