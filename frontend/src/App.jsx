@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Main application layout.
  *
  * Full-viewport globe as background with glassmorphism panels overlaid.
@@ -37,23 +37,6 @@ export default function App() {
 
   const showDetailOverlay = selectedConjunctionId || selectedSatelliteId;
 
-  if (isLoading) {
-    return (
-      <div className="loading-overlay" style={{ background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', width: '100vw', zIndex: 9999, position: 'fixed' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
-          <Shield size={36} color="var(--accent-cyan)" />
-          <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '2px', textTransform: 'uppercase' }}>Orbital Shield</div>
-        </div>
-        <div style={{ width: '300px', background: 'var(--bg-elevated)', borderRadius: '4px', overflow: 'hidden', height: '6px', marginBottom: '16px', border: '1px solid var(--border-subtle)' }}>
-          <div style={{ height: '100%', width: `${loadingProgress}%`, background: 'var(--accent-cyan)', transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)', boxShadow: '0 0 10px var(--accent-cyan)' }} />
-        </div>
-        <div style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 500, letterSpacing: '0.5px' }}>
-          {loadingMessage || 'Initializing orbital data...'}
-        </div>
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{Math.round(loadingProgress)}% Complete</div>
-      </div>
-    );
-  }
 
   if (error) {
     return (
